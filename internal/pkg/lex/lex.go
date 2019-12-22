@@ -21,8 +21,12 @@ const (
 	NUMBER
 	JUMP
 	END
+	AT
+	SYMBOL
+	ADDRESS
 )
 
+// Tokenize takes as input one line of nand2tetris assembly statement, and returns tokenized formt.
 func Tokenize(s string) ([]Token, error) {
 	s = clean(s)
 	if s == "" {
@@ -85,6 +89,8 @@ func lexC(s string) ([]Token, error) {
 			tokens = append(tokens, Token{Value: parts[1], Type: JUMP})
 		}
 	}
+
+	tokens = append(tokens, Token{Type: END})
 	return tokens, nil
 }
 

@@ -6,13 +6,19 @@ var (
 	index   int
 	tokens  []lex.Token
 	cmdC    = CmdC{}
-	cmdType CommandType
+	program []Command
 )
 
 type CmdC struct {
 	D Dest
 	C string
 	J string
+}
+
+type CmdA struct {
+	address int
+	symbol  string
+	final   bool // true for static address, or resolved symbol address
 }
 
 type Dest struct {
@@ -30,21 +36,44 @@ const (
 	A_COMMAND
 )
 
-// Parse takes a list of tokens and returns one or more HACK statements ?
-func Parse(t []lex.Token) ([]string, error) {
+type Command struct {
+	Type CommandType
+	C    interface{}
+}
+
+// Parse converts tokens to Commands
+func Parse(t []lex.Token) ([]Command, error) {
+	// initialize globals (ick)
+	program = []Command{}
 	tokens = t
 	index = -1
-	S()
 
-	return nil, nil
+	// read Statements until done
+	for !end() {
+		S()
+	}
+
+	return program, nil
 }
 
 func S() {
-	cmdC = CmdC{D: Dest{}}
-	if peek(lex.LOCATION) || peek(lex.OPERATOR) || peek(lex.NUMBER) {
-		cmdType = C_COMMAND
-		C()
+	if peek(lex.END) {
+		accept(lex.END)
+		return
 	}
+	if peek(lex.LOCATION) || peek(lex.OPERATOR) || peek(lex.NUMBER) {
+		cmd := Command{Type: C_COMMAND}
+		// initialize C type command global variable
+		cmdC = CmdC{D: Dest{}}
+		// parse C type command
+		C()
+		// store in program
+		cmd.C = cmdC
+		program = append(program, cmd)
+	} else {
+		panic("unexpected token")
+	}
+	S()
 }
 
 // C parses type C commands, syntax (dest=)comp(;jump)
@@ -54,7 +83,7 @@ func C() {
 	} else if peek(lex.LOCATION) {
 		// maybe this is comp part, or maybe this is dest part
 		// lookahead up to 3 for assignment token
-		if peekN(lex.ASSIGN, 1) || peekN(lex.ASSIGN, 2) || peekN(lex.ASSIGN, 3) {
+		if peekN(lex.ASSIGN, 2) || peekN(lex.ASSIGN, 3) || peekN(lex.ASSIGN, 4) {
 			DEST()
 		} else {
 			COMP()
@@ -66,6 +95,7 @@ func C() {
 	}
 }
 
+// COMP is the comp part of C command
 func COMP() {
 	if peek(lex.LOCATION) || peek(lex.OPERATOR) || peek(lex.NUMBER) {
 		acceptAny()
@@ -76,6 +106,7 @@ func COMP() {
 	}
 }
 
+// DEST is the dest part of C command
 func DEST() {
 	if peek(lex.LOCATION) {
 		accept(lex.LOCATION)
@@ -100,7 +131,7 @@ func DEST() {
 	}
 }
 
-// peek returns true if the next token is of type t
+// peek returns true if the next token is of type t - no bounds checking
 func peek(t lex.TokenType) bool {
 	return tokens[index+1].Type == t
 }
@@ -113,6 +144,7 @@ func peekN(t lex.TokenType, n int) bool {
 	return tokens[index+n].Type == t
 }
 
+// accept next token of type t
 func accept(t lex.TokenType) {
 	if !peek(t) {
 		panic("Wrong token type, did you forget to peek")
@@ -120,10 +152,12 @@ func accept(t lex.TokenType) {
 	acceptAny()
 }
 
+// end returns true if we have accepted the last token already
 func end() bool {
 	return index >= len(tokens)-1
 }
 
+// accept next token of any type
 func acceptAny() {
 	index++
 }

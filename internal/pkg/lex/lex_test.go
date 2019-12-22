@@ -43,6 +43,7 @@ func TestTokenizeTypeC(t *testing.T) {
 			{Type: OPERATOR, Value: "+"},
 			{Type: NUMBER, Value: "1"},
 			{Type: JUMP, Value: "JNE"},
+			{Type: END, Value: ""},
 		},
 	}
 
