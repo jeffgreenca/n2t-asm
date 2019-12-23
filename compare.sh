@@ -2,7 +2,7 @@
 ASM_1=~/Documents/nand2tetris/tools/Assembler.sh
 ASM_2=n2t-asm
 
-TARGETS=$(find ~/Documents/nand2tetris/projects/06/ -name \*.asm -type f)
+TARGETS=$(find ~/Documents/nand2tetris/ -name \*.asm -type f)
 
 WORKDIR=${PWD}/temp
 mkdir ${WORKDIR} || rm -rf ${WORKDIR} && mkdir ${WORKDIR}

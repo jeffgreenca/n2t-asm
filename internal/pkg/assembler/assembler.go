@@ -125,6 +125,7 @@ var (
 		"_h":  "1001110",
 		"M-1": "1110010",
 		"D+M": "1000010",
+		"M+D": "1000010",
 		"D-M": "1010011",
 		"M-D": "1000111",
 		"D&M": "1000000",
@@ -138,7 +139,7 @@ func C(cmd parser.CmdC) string {
 	// convert comp part
 	comp, ok := COMP[cmd.C]
 	if !ok {
-		panic("Unknown computation!")
+		panic(fmt.Sprintf("Unknown computation: %s", cmd.C))
 	}
 
 	// convert dest part
