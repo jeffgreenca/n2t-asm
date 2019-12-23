@@ -25,6 +25,7 @@ const (
 	AT
 	SYMBOL
 	ADDRESS
+	LABEL
 )
 
 // Tokenize takes as input one line of nand2tetris assembly statement, and returns tokenized formt.
@@ -38,23 +39,37 @@ func Tokenize(s string) ([]Token, error) {
 	var tokens = []Token{}
 	switch {
 	case s[0] == '@':
-		// TODO A command
 		t, err := lexA(s)
 		tokens = append(tokens, t...)
 		if err != nil {
 			return tokens, err
 		}
-	case strings.Contains(s, "="):
+	case strings.Contains(s, "="), strings.Contains(s, ";"):
 		t, err := lexC(s)
 		tokens = append(tokens, t...)
 		if err != nil {
 			return tokens, err
 		}
 	case s[0] == '(':
-		// TODO L command
+		t, err := lexL(s)
+		tokens = append(tokens, t...)
+		if err != nil {
+			return tokens, err
+		}
 	default:
-		// TODO - unknown
+		panic(fmt.Sprintf("Unrecognized symbols: %v", s))
 	}
+	return tokens, nil
+}
+
+func lexL(s string) ([]Token, error) {
+	var tokens = []Token{{Value: "(", Type: LABEL}}
+	if s[len(s)-1] != ')' {
+		return []Token{}, errors.New("Malformed label")
+	}
+	tokens = append(tokens, Token{Value: s[1 : len(s)-1], Type: SYMBOL})
+
+	tokens = append(tokens, Token{Type: END})
 	return tokens, nil
 }
 

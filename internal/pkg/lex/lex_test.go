@@ -19,6 +19,22 @@ func TestClean(t *testing.T) {
 	}
 }
 
+func TestTokenizeTypeL(t *testing.T) {
+	testCases := map[string][]Token{
+		"(foobar)": {
+			{Type: LABEL, Value: "("},
+			{Type: SYMBOL, Value: "foobar"},
+			{Type: END, Value: ""},
+		},
+	}
+
+	for k, v := range testCases {
+		actual, err := Tokenize(k)
+		assert.NoError(t, err)
+		assert.Equal(t, v, actual)
+	}
+}
+
 func TestTokenizeTypeC(t *testing.T) {
 	testCases := map[string][]Token{
 		"D=M+1;JNE": {

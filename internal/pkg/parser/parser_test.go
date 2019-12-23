@@ -7,6 +7,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCommandTypeL(t *testing.T) {
+	type TestCaseL struct {
+		tokens   []lex.Token
+		expected CmdL
+	}
+
+	testCases := []TestCaseL{
+		{
+			tokens: []lex.Token{
+				{Type: lex.LABEL, Value: "("},
+				{Type: lex.SYMBOL, Value: "foobar"},
+				{Type: lex.END},
+			},
+			expected: CmdL{Symbol: "foobar"},
+		},
+	}
+
+	for _, c := range testCases {
+		program, err := Parse(c.tokens)
+		assert.NoError(t, err)
+
+		assert.Equal(t, L_COMMAND, program[0].Type)
+		assert.Equal(t, c.expected, program[0].C)
+	}
+}
+
 func TestCommandTypeA(t *testing.T) {
 	type TestCaseA struct {
 		tokens   []lex.Token

@@ -7,6 +7,10 @@ import (
 	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
 )
 
+type CmdL struct {
+	Symbol string
+}
+
 type CmdC struct {
 	D Dest
 	C string
@@ -45,6 +49,7 @@ var (
 	program []Command
 	cmdC    = CmdC{}
 	cmdA    = CmdA{}
+	cmdL    = CmdL{}
 )
 
 // Parse converts tokens to Commands
@@ -82,10 +87,28 @@ func S() {
 		A()
 		cmd.C = cmdA
 		program = append(program, cmd)
+	} else if peek(lex.LABEL) {
+		cmd := Command{Type: L_COMMAND}
+		cmdL = CmdL{}
+		L()
+		cmd.C = cmdL
+		program = append(program, cmd)
 	} else {
 		panic(fmt.Sprintf("unexpected token: %v", tokens[index+1]))
 	}
 	S()
+}
+
+// L parses type L commands, syntax (symbol)
+func L() {
+	accept(lex.LABEL)
+	if peek(lex.SYMBOL) {
+		accept(lex.SYMBOL)
+		cmdL = CmdL{Symbol: tokens[index].Value}
+	}
+	if !peek(lex.END) {
+		panic("Malforned label syntax")
+	}
 }
 
 // A parses type A commands, syntax @(symbol|address)

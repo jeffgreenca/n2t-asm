@@ -9,13 +9,54 @@ import (
 
 // Assemble converts a series of parsed Commands into HACK machine language instructions
 func Assemble(program []parser.Command) ([]string, error) {
-	var instructions []string
+	// init symbol table
+	symbols := map[string]int{
+		"SP":     0x0000,
+		"LCL":    0x0001,
+		"ARG":    0x0002,
+		"THIS":   0x0003,
+		"THAT":   0x0004,
+		"R0":     0x0000,
+		"R1":     0x0001,
+		"R2":     0x0002,
+		"R3":     0x0003,
+		"R4":     0x0004,
+		"R5":     0x0005,
+		"R6":     0x0006,
+		"R7":     0x0007,
+		"R8":     0x0008,
+		"R9":     0x0009,
+		"R10":    0x00a,
+		"R11":    0x00b,
+		"R12":    0x00c,
+		"R13":    0x00d,
+		"R14":    0x00e,
+		"R15":    0x00f,
+		"SCREEN": 0x4000,
+		"KBD":    0x6000,
+	}
 
-	// this is a simple, one-pass approach that doesn't support symbols
+	// pass one: scan program for labels, adding to symbol table
+	pos := 0
 	for _, c := range program {
 		switch c.Type {
 		case parser.L_COMMAND:
-			// not implemented
+			cmd := c.C.(parser.CmdL)
+			symbols[cmd.Symbol] = pos
+		case parser.C_COMMAND, parser.A_COMMAND:
+			pos++
+		default:
+			panic("Unknown instruction type")
+		}
+	}
+
+	// pass two: if encountering an @SYMBOL
+	//		if an existing symbol, finalize the CmdA struct
+	//		if a new symbol, add to symbol table as a new user defined variable and finalize CmdA struct
+	var instructions []string
+	userVarPos := 0x010
+	for _, c := range program {
+		switch c.Type {
 		case parser.C_COMMAND:
 			cmd := c.C.(parser.CmdC)
 			hack := C(cmd)
@@ -23,12 +64,17 @@ func Assemble(program []parser.Command) ([]string, error) {
 		case parser.A_COMMAND:
 			cmd := c.C.(parser.CmdA)
 			if !cmd.Final {
-				panic("Nonfinalized A command encountered")
+				loc, ok := symbols[cmd.Symbol]
+				if !ok {
+					loc = userVarPos
+					symbols[cmd.Symbol] = loc
+					userVarPos++
+				}
+				cmd.Address = loc
+				cmd.Final = true
 			}
 			hack := fmt.Sprintf("0%015b", cmd.Address)
 			instructions = append(instructions, hack)
-		default:
-			panic("Unknown instruction type")
 		}
 	}
 
