@@ -27,38 +27,49 @@ const (
 	LABEL
 )
 
+var (
+	globalTokens []Token
+)
+
+func init() {
+	// globalTokens is used each Tokenize call to allow reusing memory space.
+	// this optimization saved about 25% time assembling a 28k line asm program
+	globalTokens = make([]Token, 0, 20)
+}
+
 // Tokenize takes as input one line of nand2tetris assembly statement, and returns tokenized formt.
 func Tokenize(s string) ([]Token, error) {
 	s = clean(s)
 	if s == "" {
-		return []Token{}, nil
+		return nil, nil
 	}
 
 	// convert string to a sequence of tokens
-	var tokens = []Token{}
+	// zero out globalTokens slice, re-using memory space
+	globalTokens = globalTokens[:0]
 	switch {
 	case s[0] == '@':
 		t, err := lexA(s)
-		tokens = append(tokens, t...)
+		globalTokens = append(globalTokens, t...)
 		if err != nil {
-			return tokens, err
+			return globalTokens, err
 		}
 	case strings.Contains(s, "="), strings.Contains(s, ";"):
 		t, err := lexC(s)
-		tokens = append(tokens, t...)
+		globalTokens = append(globalTokens, t...)
 		if err != nil {
-			return tokens, err
+			return globalTokens, err
 		}
 	case s[0] == '(':
 		t, err := lexL(s)
-		tokens = append(tokens, t...)
+		globalTokens = append(globalTokens, t...)
 		if err != nil {
-			return tokens, err
+			return globalTokens, err
 		}
 	default:
 		panic(fmt.Sprintf("Unrecognized symbols: %v", s))
 	}
-	return tokens, nil
+	return globalTokens, nil
 }
 
 func lexL(s string) ([]Token, error) {
@@ -88,7 +99,7 @@ func lexA(s string) ([]Token, error) {
 	return tokens, nil
 }
 
-// isNumeric returns true if s contains only digits 0-9
+// isNumeric returns true if s contains only digits 0-9, and is faster than using a regex.
 func isNumeric(s string) bool {
 	for _, ch := range s {
 		if !('0' <= ch && ch <= '9') {
@@ -98,51 +109,78 @@ func isNumeric(s string) bool {
 	return true
 }
 
+var (
+	lexCTokens []Token
+)
+
+func init() {
+	lexCTokens = make([]Token, 0, 20)
+}
+
 func lexC(s string) ([]Token, error) {
-	var tokens = []Token{}
-	parts := strings.SplitN(s, ";", 2)
-	for _, ch := range parts[0] {
+	split := strings.IndexRune(s, ';')
+
+	// optimization - we know slice size needed based on if a jump field exists,
+	// and that each comp rune becomes 1 token.
+	var comp string
+	var jump string
+	var size int
+	if split != -1 {
+		comp = s[:split]
+		jump = s[split+1:]
+		size = len(comp) + 2
+	} else {
+		comp = s
+		jump = ""
+		size = len(comp) + 1
+	}
+
+	lexCTokens = lexCTokens[:size]
+	for i, ch := range comp {
 		switch ch {
 		case '=':
-			tokens = append(tokens, Token{Value: "=", Type: ASSIGN})
+			lexCTokens[i] = Token{Value: "=", Type: ASSIGN}
 		case '0':
-			tokens = append(tokens, Token{Value: "0", Type: NUMBER})
+			lexCTokens[i] = Token{Value: "0", Type: NUMBER}
 		case '1':
-			tokens = append(tokens, Token{Value: "1", Type: NUMBER})
+			lexCTokens[i] = Token{Value: "1", Type: NUMBER}
 		case '+':
-			tokens = append(tokens, Token{Value: "+", Type: OPERATOR})
+			lexCTokens[i] = Token{Value: "+", Type: OPERATOR}
 		case '-':
-			tokens = append(tokens, Token{Value: "-", Type: OPERATOR})
+			lexCTokens[i] = Token{Value: "-", Type: OPERATOR}
 		case '!':
-			tokens = append(tokens, Token{Value: "!", Type: OPERATOR})
+			lexCTokens[i] = Token{Value: "!", Type: OPERATOR}
 		case '&':
-			tokens = append(tokens, Token{Value: "&", Type: OPERATOR})
+			lexCTokens[i] = Token{Value: "&", Type: OPERATOR}
 		case '|':
-			tokens = append(tokens, Token{Value: "|", Type: OPERATOR})
+			lexCTokens[i] = Token{Value: "|", Type: OPERATOR}
 		case 'D':
-			tokens = append(tokens, Token{Value: "D", Type: LOCATION})
+			lexCTokens[i] = Token{Value: "D", Type: LOCATION}
 		case 'M':
-			tokens = append(tokens, Token{Value: "M", Type: LOCATION})
+			lexCTokens[i] = Token{Value: "M", Type: LOCATION}
 		case 'A':
-			tokens = append(tokens, Token{Value: "A", Type: LOCATION})
+			lexCTokens[i] = Token{Value: "A", Type: LOCATION}
 		default:
-			return tokens, errors.New(fmt.Sprintf("Unexpected token in: %s", s))
+			return lexCTokens, errors.New(fmt.Sprintf("Unexpected token in: %s", s))
 		}
 	}
-	if len(parts) == 2 {
-		switch parts[1] {
+	if jump != "" {
+		switch jump {
 		case "JGT", "JEQ", "JGE", "JLT", "JNE", "JLE", "JMP":
-			tokens = append(tokens, Token{Value: parts[1], Type: JUMP})
+			lexCTokens[len(lexCTokens)-2] = Token{Value: jump, Type: JUMP}
 		}
 	}
 
-	tokens = append(tokens, Token{Type: END})
-	return tokens, nil
+	lexCTokens[len(lexCTokens)-1] = Token{Type: END}
+	return lexCTokens, nil
 }
 
 // clean deletes comments and whitespace
 func clean(s string) string {
-	s = strings.Split(s, "//")[0]
+	i := strings.Index(s, "//")
+	if i != -1 {
+		s = s[:i]
+	}
 	s = strings.TrimSpace(s)
 	return s
 }
