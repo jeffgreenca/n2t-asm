@@ -6,21 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	progAdd = `
-	// Computes R0 = 2 + 3  (R0 refers to RAM[0])
-		@2
-		D=A
-		@3
-		D=D+A
-		@0
-		M=D
-	(END)
-		@END
-		0;JMP
-`
-)
-
 func TestClean(t *testing.T) {
 	testCases := map[string]string{
 		"D=M+1    ":            "D=M+1",
@@ -43,6 +28,32 @@ func TestTokenizeTypeC(t *testing.T) {
 			{Type: OPERATOR, Value: "+"},
 			{Type: NUMBER, Value: "1"},
 			{Type: JUMP, Value: "JNE"},
+			{Type: END, Value: ""},
+		},
+	}
+
+	for k, v := range testCases {
+		actual, err := Tokenize(k)
+		assert.NoError(t, err)
+		assert.Equal(t, v, actual)
+	}
+}
+
+func TestTokenizeTypeA(t *testing.T) {
+	testCases := map[string][]Token{
+		"@100": {
+			{Type: AT, Value: "@"},
+			{Type: ADDRESS, Value: "100"},
+			{Type: END, Value: ""},
+		},
+		"@i": {
+			{Type: AT, Value: "@"},
+			{Type: SYMBOL, Value: "i"},
+			{Type: END, Value: ""},
+		},
+		"@foo": {
+			{Type: AT, Value: "@"},
+			{Type: SYMBOL, Value: "foo"},
 			{Type: END, Value: ""},
 		},
 	}

@@ -18,15 +18,25 @@ func TestCommandTypeA(t *testing.T) {
 			tokens: []lex.Token{
 				{Type: lex.AT, Value: "@"},
 				{Type: lex.ADDRESS, Value: "1024"},
+				{Type: lex.END},
 			},
-			expected: CmdA{address: 1024, final: true, symbol: ""},
+			expected: CmdA{Address: 1024, Final: true, Symbol: ""},
 		},
 		{
 			tokens: []lex.Token{
 				{Type: lex.AT, Value: "@"},
 				{Type: lex.SYMBOL, Value: "foo"},
+				{Type: lex.END},
 			},
-			expected: CmdA{address: 0, final: false, symbol: "foo"},
+			expected: CmdA{Address: 0, Final: false, Symbol: "foo"},
+		},
+		{
+			tokens: []lex.Token{
+				{Type: lex.AT, Value: "@"},
+				{Type: lex.SYMBOL, Value: "i"},
+				{Type: lex.END},
+			},
+			expected: CmdA{Address: 0, Final: false, Symbol: "i"},
 		},
 	}
 

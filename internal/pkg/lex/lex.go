@@ -3,6 +3,7 @@ package lex
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -38,6 +39,11 @@ func Tokenize(s string) ([]Token, error) {
 	switch {
 	case s[0] == '@':
 		// TODO A command
+		t, err := lexA(s)
+		tokens = append(tokens, t...)
+		if err != nil {
+			return tokens, err
+		}
 	case strings.Contains(s, "="):
 		t, err := lexC(s)
 		tokens = append(tokens, t...)
@@ -49,6 +55,27 @@ func Tokenize(s string) ([]Token, error) {
 	default:
 		// TODO - unknown
 	}
+	return tokens, nil
+}
+
+func lexA(s string) ([]Token, error) {
+	var tokens = []Token{{Value: "@", Type: AT}}
+	if len(s) < 2 {
+		return tokens, errors.New("Malformed @ command - too short")
+	}
+
+	static, err := regexp.MatchString("^@[0-9]+$", s)
+	if err != nil {
+		return tokens, err
+	}
+
+	if static {
+		tokens = append(tokens, Token{Value: s[1:], Type: ADDRESS})
+	} else {
+		tokens = append(tokens, Token{Value: s[1:], Type: SYMBOL})
+	}
+
+	tokens = append(tokens, Token{Type: END})
 	return tokens, nil
 }
 

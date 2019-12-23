@@ -1,12 +1,10 @@
 package parser
 
-import "bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
+import (
+	"fmt"
+	"strconv"
 
-var (
-	index   int
-	tokens  []lex.Token
-	cmdC    = CmdC{}
-	program []Command
+	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
 )
 
 type CmdC struct {
@@ -16,9 +14,9 @@ type CmdC struct {
 }
 
 type CmdA struct {
-	address int
-	symbol  string
-	final   bool // true for static address, or resolved symbol address
+	Address int
+	Symbol  string
+	Final   bool // true for static address, or resolved Symbol address
 }
 
 type Dest struct {
@@ -41,6 +39,14 @@ type Command struct {
 	C    interface{}
 }
 
+var (
+	index   int
+	tokens  []lex.Token
+	program []Command
+	cmdC    = CmdC{}
+	cmdA    = CmdA{}
+)
+
 // Parse converts tokens to Commands
 func Parse(t []lex.Token) ([]Command, error) {
 	// initialize globals (ick)
@@ -62,18 +68,43 @@ func S() {
 		return
 	}
 	if peek(lex.LOCATION) || peek(lex.OPERATOR) || peek(lex.NUMBER) {
+		// init
 		cmd := Command{Type: C_COMMAND}
-		// initialize C type command global variable
 		cmdC = CmdC{D: Dest{}}
-		// parse C type command
+		// parse
 		C()
-		// store in program
+		// store
 		cmd.C = cmdC
 		program = append(program, cmd)
+	} else if peek(lex.AT) {
+		cmd := Command{Type: A_COMMAND}
+		cmdA = CmdA{}
+		A()
+		cmd.C = cmdA
+		program = append(program, cmd)
 	} else {
-		panic("unexpected token")
+		panic(fmt.Sprintf("unexpected token: %v", tokens[index+1]))
 	}
 	S()
+}
+
+// A parses type A commands, syntax @(symbol|address)
+func A() {
+	accept(lex.AT)
+	if peek(lex.ADDRESS) {
+		accept(lex.ADDRESS)
+		i, err := strconv.Atoi(tokens[index].Value)
+		if err != nil {
+			panic("Unexpected parse address error")
+		}
+		cmdA = CmdA{Address: i, Final: true}
+	} else if peek(lex.SYMBOL) {
+		accept(lex.SYMBOL)
+		cmdA = CmdA{Symbol: tokens[index].Value}
+	}
+	if !peek(lex.END) {
+		panic("Malforned address syntax (@xxx)")
+	}
 }
 
 // C parses type C commands, syntax (dest=)comp(;jump)
