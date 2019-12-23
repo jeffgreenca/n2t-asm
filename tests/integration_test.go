@@ -49,7 +49,6 @@ const (
 )
 
 func TestLexParseSingle(t *testing.T) {
-	_ = strings.Split("", "")
 	tokens, err := lex.Tokenize("@10")
 	assert.NoError(t, err)
 	assert.Len(t, tokens, 3)
@@ -91,4 +90,20 @@ func TestAll(t *testing.T) {
 	hack, err := assembler.Assemble(prog)
 	assert.NoError(t, err)
 	assert.Equal(t, progAddExpected, strings.Join(hack, "\n"))
+}
+
+// --- regression tests
+func TestLexParseDMJGT(t *testing.T) {
+	// D;JGT -> 1110001100000001
+	tokens, err := lex.Tokenize(" D;JGT   // if")
+	assert.NoError(t, err)
+	assert.Len(t, tokens, 2)
+
+	prog, err := parser.Parse(tokens)
+	assert.NoError(t, err)
+	assert.Len(t, prog, 1)
+
+	hack, err := assembler.Assemble(prog)
+	assert.NoError(t, err)
+	assert.Equal(t, "1110001100000001", hack[0])
 }
