@@ -3,7 +3,6 @@ package lex
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -79,19 +78,24 @@ func lexA(s string) ([]Token, error) {
 		return tokens, errors.New("Malformed @ command - too short")
 	}
 
-	static, err := regexp.MatchString("^@[0-9]+$", s)
-	if err != nil {
-		return tokens, err
-	}
-
-	if static {
-		tokens = append(tokens, Token{Value: s[1:], Type: ADDRESS})
+	val := s[1:]
+	if isNumeric(val) {
+		tokens = append(tokens, Token{Value: val, Type: ADDRESS}, Token{Type: END})
 	} else {
-		tokens = append(tokens, Token{Value: s[1:], Type: SYMBOL})
+		tokens = append(tokens, Token{Value: val, Type: SYMBOL}, Token{Type: END})
 	}
 
-	tokens = append(tokens, Token{Type: END})
 	return tokens, nil
+}
+
+// isNumeric returns true if s contains only digits 0-9
+func isNumeric(s string) bool {
+	for _, ch := range s {
+		if !('0' <= ch && ch <= '9') {
+			return false
+		}
+	}
+	return true
 }
 
 func lexC(s string) ([]Token, error) {

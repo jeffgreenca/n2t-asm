@@ -23,6 +23,7 @@ DONE 15 tests in 0.847s
 - global variables in the parser - would rather implement as recievers with an appropriate struct
 - each of `CmdA`, `CmdC`, etc. should implement an abstract `Cmd` interface for use in the assembler package
 - concepts that span packages should be split out - for example, commands, the lexers symbol definitions, and so on
+- error handling is pretty rough, used a lot of panics rather than letting errors bubble up
 
 # License
 

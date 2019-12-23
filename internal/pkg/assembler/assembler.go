@@ -2,7 +2,6 @@ package assembler
 
 import (
 	"fmt"
-	"strings"
 
 	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
@@ -143,17 +142,17 @@ func C(cmd parser.CmdC) string {
 	}
 
 	// convert dest part
-	d := []string{"0", "0", "0"}
+	d := 0
 	if cmd.D.A {
-		d[0] = "1"
+		d += 1 << 2
 	}
 	if cmd.D.D {
-		d[1] = "1"
+		d += 1 << 1
 	}
 	if cmd.D.M {
-		d[2] = "1"
+		d += 1
 	}
-	dest := strings.Join(d, "")
+	dest := fmt.Sprintf("%03b", d)
 
 	// convert jump part
 	jump, ok := JUMP[cmd.J]
