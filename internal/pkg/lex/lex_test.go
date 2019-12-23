@@ -46,6 +46,11 @@ func TestTokenizeTypeC(t *testing.T) {
 			{Type: JUMP, Value: "JNE"},
 			{Type: END, Value: ""},
 		},
+		"D;JGT": {
+			{Type: LOCATION, Value: "D"},
+			{Type: JUMP, Value: "JGT"},
+			{Type: END, Value: ""},
+		},
 	}
 
 	for k, v := range testCases {

@@ -95,13 +95,17 @@ func TestAll(t *testing.T) {
 // --- regression tests
 func TestLexParseDMJGT(t *testing.T) {
 	// D;JGT -> 1110001100000001
-	tokens, err := lex.Tokenize(" D;JGT   // if")
+	tokens, err := lex.Tokenize("D;JGT")
 	assert.NoError(t, err)
-	assert.Len(t, tokens, 2)
+	assert.Len(t, tokens, 3)
+	assert.Equal(t, lex.Token{Value: "D", Type: lex.LOCATION}, tokens[0])
+	assert.Equal(t, lex.Token{Value: "JGT", Type: lex.JUMP}, tokens[1])
+	assert.Equal(t, lex.Token{Type: lex.END}, tokens[2])
 
 	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
+	assert.Equal(t, parser.Command{Type: parser.C_COMMAND, C: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])
 
 	hack, err := assembler.Assemble(prog)
 	assert.NoError(t, err)

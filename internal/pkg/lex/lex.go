@@ -127,7 +127,7 @@ func lexC(s string) ([]Token, error) {
 	}
 	if len(parts) == 2 {
 		switch parts[1] {
-		case "JMP", "JLT", "JNE":
+		case "JGT", "JEQ", "JGE", "JLT", "JNE", "JLE", "JMP":
 			tokens = append(tokens, Token{Value: parts[1], Type: JUMP})
 		}
 	}
