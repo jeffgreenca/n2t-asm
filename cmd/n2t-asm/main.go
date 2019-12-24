@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/profile"
+	//"github.com/pkg/profile"
 
 	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/assembler"
 	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	defer profile.Start().Stop()
+	// defer profile.Start().Stop()
 
 	r, err := os.Open(os.Args[1])
 	if err != nil {

@@ -2,6 +2,7 @@ package assembler
 
 import (
 	"fmt"
+	"strconv"
 
 	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
@@ -81,67 +82,68 @@ func Assemble(program []parser.Command) ([]string, error) {
 }
 
 var (
-	JUMP = map[string]string{
-		"JGT": "001",
-		"JEQ": "010",
-		"JGE": "011",
-		"JLT": "100",
-		"JNE": "101",
-		"JLE": "110",
-		"JMP": "111",
+	JUMP = map[string]int{
+		"JGT": 0b001,
+		"JEQ": 0b010,
+		"JGE": 0b011,
+		"JLT": 0b100,
+		"JNE": 0b101,
+		"JLE": 0b110,
+		"JMP": 0b111,
 	}
 
-	COMP = map[string]string{
-		"0":   "0101010",
-		"1":   "0111111",
-		"-1":  "0111010",
-		"D":   "0001100",
-		"A":   "0110000",
-		"!D":  "0001101",
-		"!A":  "0110001",
-		"-D":  "0001111",
-		"-A":  "0110011",
-		"D+1": "0011111",
-		"A+1": "0110111",
-		"D-1": "0001110",
-		"A-1": "0110010",
-		"D+A": "0000010",
-		"D-A": "0010011",
-		"A-D": "0000111",
-		"D&A": "0000000",
-		"D|A": "0010101",
-		"_a":  "1101010",
-		"_b":  "1111111",
-		"_c":  "1111010",
-		"_d":  "1001100",
-		"M":   "1110000",
-		"_e":  "1001101",
-		"!M":  "1110001",
-		"_f":  "1001111",
-		"-M":  "1110011",
-		"_g":  "1011111",
-		"M+1": "1110111",
-		"_h":  "1001110",
-		"M-1": "1110010",
-		"D+M": "1000010",
-		"M+D": "1000010",
-		"D-M": "1010011",
-		"M-D": "1000111",
-		"D&M": "1000000",
-		"D|M": "1010101",
+	COMP = map[string]int{
+		"0":   0b0101010,
+		"1":   0b0111111,
+		"-1":  0b0111010,
+		"D":   0b0001100,
+		"A":   0b0110000,
+		"!D":  0b0001101,
+		"!A":  0b0110001,
+		"-D":  0b0001111,
+		"-A":  0b0110011,
+		"D+1": 0b0011111,
+		"A+1": 0b0110111,
+		"D-1": 0b0001110,
+		"A-1": 0b0110010,
+		"D+A": 0b0000010,
+		"D-A": 0b0010011,
+		"A-D": 0b0000111,
+		"D&A": 0b0000000,
+		"D|A": 0b0010101,
+		"_a":  0b1101010,
+		"_b":  0b1111111,
+		"_c":  0b1111010,
+		"_d":  0b1001100,
+		"M":   0b1110000,
+		"_e":  0b1001101,
+		"!M":  0b1110001,
+		"_f":  0b1001111,
+		"-M":  0b1110011,
+		"_g":  0b1011111,
+		"M+1": 0b1110111,
+		"_h":  0b1001110,
+		"M-1": 0b1110010,
+		"D+M": 0b1000010,
+		"M+D": 0b1000010,
+		"D-M": 0b1010011,
+		"M-D": 0b1000111,
+		"D&M": 0b1000000,
+		"D|M": 0b1010101,
 	}
 )
 
 func C(cmd parser.CmdC) string {
-	// C command prefix
-	c := "111"
-	// convert comp part
-	comp, ok := COMP[cmd.C]
+	// C command prefix - 3 bits
+	p := 0b111
+
+	// comp flags - 7 bits
+	c, ok := COMP[cmd.C]
 	if !ok {
 		panic(fmt.Sprintf("Unknown computation: %s", cmd.C))
 	}
 
-	// convert dest part
+	// destination flags - 3 bits
 	d := 0
 	if cmd.D.A {
 		d += 1 << 2
@@ -152,14 +154,15 @@ func C(cmd parser.CmdC) string {
 	if cmd.D.M {
 		d += 1
 	}
-	dest := fmt.Sprintf("%03b", d)
 
-	// convert jump part
-	jump, ok := JUMP[cmd.J]
+	// jump flags - 3 bits
+	j, ok := JUMP[cmd.J]
 	if !ok {
-		jump = "000"
+		j = 0
 	}
 
-	// combine
-	return c + comp + dest + jump
+	// combine - 3 + 7 + 3 + 3 = 16 bit instruction
+	instruction := p<<(16-3) + c<<(16-3-7) + d<<(16-3-7-3) + j
+	//return fmt.Sprintf("%16b", instruction)
+	return strconv.FormatUint(uint64(instruction), 2)
 }
