@@ -163,6 +163,6 @@ func C(cmd parser.CmdC) string {
 
 	// combine - 3 + 7 + 3 + 3 = 16 bit instruction
 	instruction := p<<(16-3) + c<<(16-3-7) + d<<(16-3-7-3) + j
-	//return fmt.Sprintf("%16b", instruction)
+	// FormatUint is slightly faster than fmt.Sprintf("%016b",i), per benchmarking
 	return strconv.FormatUint(uint64(instruction), 2)
 }
