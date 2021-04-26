@@ -1,15 +1,22 @@
 #!/bin/bash
-ASM_1=~/Documents/nand2tetris/tools/Assembler.sh
-ASM_2=n2t-asm
+N2T_PATH=${N2T_PATH:-$HOME/Documents/nand2tetris}
+ASM_1=${N2T_PATH}/tools/Assembler.sh
+ASM_2=./n2t-asm
 
-TARGETS=$(find ~/Documents/nand2tetris/ -name \*.asm -type f)
+TARGETS=$(find ${N2T_PATH} -type f -name \*.asm)
 
 WORKDIR=${PWD}/temp
-mkdir ${WORKDIR} || rm -rf ${WORKDIR} && mkdir ${WORKDIR}
+mkdir -p ${WORKDIR} && rm -rf ${WORKDIR}/ && mkdir ${WORKDIR}
 
+FAIL=0
 for t in ${TARGETS}; do
 	fn=$(basename ${t})
 	cp ${t} ${WORKDIR}/${fn}
-	${ASM_1} ${WORKDIR}/${fn}
-	diff --color=always <(${ASM_2} ${WORKDIR}/${fn}) ${WORKDIR}/${fn:0:-4}.hack
+	${ASM_1} ${WORKDIR}/${fn} > /dev/null
+	diff --color=always <(${ASM_2} ${WORKDIR}/${fn}) ${WORKDIR}/${fn:0:-4}.hack || export FAIL=1
 done
+
+if [[ $FAIL -eq 0 ]]; then
+	echo "No differences found"
+	rm -rf ${WORKDIR}
+fi
