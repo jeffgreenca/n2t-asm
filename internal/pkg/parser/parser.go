@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
 )
 
 type CmdL struct {

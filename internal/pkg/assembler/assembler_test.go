@@ -3,7 +3,7 @@ package assembler
 import (
 	"testing"
 
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/parser"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 	"github.com/stretchr/testify/assert"
 )
 

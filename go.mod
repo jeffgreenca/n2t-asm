@@ -1,4 +1,4 @@
-module bitbucket.org/jeffgreenca/n2t-asm
+module github.com/jeffgreenca/n2t-asm
 
 go 1.13
 

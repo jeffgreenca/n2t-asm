@@ -8,9 +8,9 @@ import (
 
 	//"github.com/pkg/profile"
 
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/assembler"
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/parser"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/assembler"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
 func main() {

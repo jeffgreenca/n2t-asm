@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/lex"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
 	"github.com/stretchr/testify/assert"
 )
 

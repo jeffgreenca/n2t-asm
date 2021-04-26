@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbucket.org/jeffgreenca/n2t-asm/internal/pkg/parser"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
 // Assemble converts a series of parsed Commands into HACK machine language instructions
