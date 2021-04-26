@@ -4,6 +4,25 @@
 
 An assembler implementation for [nand2tetris](https://www.nand2tetris.org/), written in Go.
 
+# usage
+
+```
+$ ./scripts/build.sh
+$ n2t-asm <prog.asm> > out.hack
+```
+
+# testing
+
+```
+# run tests
+$ go test ./...
+
+# compare output to official assembler
+# on all '*.asm' provided by nand2tetris project files
+$ export N2T_PATH=/path/to/your/nand2tetris
+$ ./scripts/build.sh && ./scripts/compare.sh
+```
+
 # License
 
 MIT License.
