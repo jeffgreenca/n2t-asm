@@ -161,7 +161,7 @@ func lexC(s string) ([]Token, error) {
 		case 'A':
 			lexCTokens[i] = Token{Value: "A", Type: LOCATION}
 		default:
-			return lexCTokens, errors.New(fmt.Sprintf("Unexpected token in: %s", s))
+			return lexCTokens, fmt.Errorf("Unexpected token in: %s", s)
 		}
 	}
 	if jump != "" {
