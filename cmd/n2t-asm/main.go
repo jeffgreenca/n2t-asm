@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
-
-	//"github.com/pkg/profile"
 
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/assembler"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
@@ -14,36 +10,33 @@ import (
 )
 
 func main() {
-	// defer profile.Start().Stop()
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: n2t-asm <file>")
+		return
+	}
 
 	r, err := os.Open(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
 	defer r.Close()
-
-	// tokenize from source file
-	var tokens []lex.Token
-	scan := bufio.NewScanner(r)
-	for scan.Scan() {
-		tk, err := lex.Tokenize(scan.Text())
-		check(err)
-		tokens = append(tokens, tk...)
-	}
-
-	// parse tokens
-	prog, err := parser.Parse(tokens)
-	check(err)
-
-	// assemble HACK machine instructions
-	hack, err := assembler.Assemble(prog)
-	check(err)
-
-	fmt.Println(strings.Join(hack, "\n"))
-}
-
-func check(err error) {
 	if err != nil {
 		panic(err)
+	}
+
+	tokens, err := lex.TokenizeFile(r)
+	if err != nil {
+		panic(err)
+	}
+
+	program, err := parser.Parse(tokens)
+	if err != nil {
+		panic(err)
+	}
+
+	text, err := assembler.Assemble(program)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, s := range text {
+		fmt.Println(s)
 	}
 }

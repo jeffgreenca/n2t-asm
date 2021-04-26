@@ -46,7 +46,7 @@ func Assemble(program []parser.Command) ([]string, error) {
 		case parser.C_COMMAND, parser.A_COMMAND:
 			pos++
 		default:
-			panic("Unknown instruction type")
+			return []string{}, fmt.Errorf("unknown instruction type in command '%+v': %v", c, c.Type)
 		}
 	}
 
@@ -59,7 +59,10 @@ func Assemble(program []parser.Command) ([]string, error) {
 		switch c.Type {
 		case parser.C_COMMAND:
 			cmd := c.C.(parser.CmdC)
-			hack := C(cmd)
+			hack, err := cTos(cmd)
+			if err != nil {
+				return []string{}, fmt.Errorf("failed parsing C cmd: %v", err)
+			}
 			instructions = append(instructions, hack)
 		case parser.A_COMMAND:
 			cmd := c.C.(parser.CmdA)
@@ -133,14 +136,14 @@ var (
 	}
 )
 
-func C(cmd parser.CmdC) string {
+func cTos(cmd parser.CmdC) (string, error) {
 	// C command prefix - 3 bits
 	p := 0b111
 
 	// comp flags - 7 bits
 	c, ok := COMP[cmd.C]
 	if !ok {
-		panic(fmt.Sprintf("Unknown computation: %s", cmd.C))
+		return "", fmt.Errorf("unknown computation in '%+v': %s", cmd, cmd.C)
 	}
 
 	// destination flags - 3 bits
@@ -164,5 +167,5 @@ func C(cmd parser.CmdC) string {
 	// combine - 3 + 7 + 3 + 3 = 16 bit instruction
 	instruction := p<<(16-3) + c<<(16-3-7) + d<<(16-3-7-3) + j
 	// FormatUint is slightly faster than fmt.Sprintf("%016b",i), per benchmarking
-	return strconv.FormatUint(uint64(instruction), 2)
+	return strconv.FormatUint(uint64(instruction), 2), nil
 }

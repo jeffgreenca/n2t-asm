@@ -1,8 +1,9 @@
 package lex
 
 import (
-	"errors"
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -28,16 +29,29 @@ const (
 )
 
 var (
-	globalTokens []Token
+	globalTokens = make([]Token, 0, 20)
+	lexCTokens   = make([]Token, 0, 20)
+
+	end = Token{Type: END}
 )
 
-func init() {
-	// globalTokens is used each Tokenize call to allow reusing memory space.
-	// this optimization saved about 25% time assembling a 28k line asm program
-	globalTokens = make([]Token, 0, 20)
+// TokenizeFile reads file and returns tokenized form or error
+func TokenizeFile(f *os.File) ([]Token, error) {
+	var result []Token
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		tokens, err := Tokenize(line)
+		if err != nil {
+			return []Token{}, fmt.Errorf("failed to tokenize line '%s': %v", line, err)
+		}
+		result = append(result, tokens...)
+	}
+	return result, nil
 }
 
-// Tokenize takes as input one line of nand2tetris assembly statement, and returns tokenized formt.
+// Tokenize one line of nand2tetris assembly statement
 func Tokenize(s string) ([]Token, error) {
 	s = clean(s)
 	if s == "" {
@@ -47,76 +61,42 @@ func Tokenize(s string) ([]Token, error) {
 	// convert string to a sequence of tokens
 	// zero out globalTokens slice, re-using memory space
 	globalTokens = globalTokens[:0]
+	var tokens []Token
+	var err error
 	switch {
 	case s[0] == '@':
-		t, err := lexA(s)
-		globalTokens = append(globalTokens, t...)
-		if err != nil {
-			return globalTokens, err
-		}
-	case strings.Contains(s, "="), strings.Contains(s, ";"):
-		t, err := lexC(s)
-		globalTokens = append(globalTokens, t...)
-		if err != nil {
-			return globalTokens, err
-		}
+		tokens, err = lexA(s)
 	case s[0] == '(':
-		t, err := lexL(s)
-		globalTokens = append(globalTokens, t...)
-		if err != nil {
-			return globalTokens, err
-		}
+		tokens, err = lexL(s)
+	case isC(s):
+		tokens, err = lexC(s)
 	default:
-		panic(fmt.Sprintf("Unrecognized symbols: %v", s))
+		return []Token{}, fmt.Errorf("unrecognized symbol: %s", s)
 	}
+	if err != nil {
+		return []Token{}, fmt.Errorf("error lexing '%s': %v", s, err)
+	}
+	globalTokens = append(globalTokens, tokens...)
 	return globalTokens, nil
 }
 
 func lexL(s string) ([]Token, error) {
-	var tokens = []Token{{Value: "(", Type: LABEL}}
-	if s[len(s)-1] != ')' {
-		return []Token{}, errors.New("Malformed label")
+	label := strings.Trim(s, "()")
+	if len(s)-2 != len(label) {
+		return []Token{}, fmt.Errorf("malformed label: %v", s)
 	}
-	tokens = append(tokens, Token{Value: s[1 : len(s)-1], Type: SYMBOL})
-
-	tokens = append(tokens, Token{Type: END})
+	tokens := []Token{{Value: "(", Type: LABEL}, Token{Value: label, Type: SYMBOL}, end}
 	return tokens, nil
 }
 
 func lexA(s string) ([]Token, error) {
-	var tokens = []Token{{Value: "@", Type: AT}}
 	if len(s) < 2 {
-		return tokens, errors.New("Malformed @ command - too short")
+		return []Token{}, fmt.Errorf("malformed '@' command, too short: %s", s)
 	}
-
-	val := s[1:]
-	if isNumeric(val) {
-		tokens = append(tokens, Token{Value: val, Type: ADDRESS}, Token{Type: END})
-	} else {
-		tokens = append(tokens, Token{Value: val, Type: SYMBOL}, Token{Type: END})
-	}
-
+	v := s[1:]
+	tokens := []Token{{Value: "@", Type: AT}, Token{Value: v, Type: typeFromVal(v)}, end}
 	return tokens, nil
 }
-
-// isNumeric returns true if s contains only digits 0-9, and is faster than using a regex.
-func isNumeric(s string) bool {
-	for _, ch := range s {
-		if !('0' <= ch && ch <= '9') {
-			return false
-		}
-	}
-	return true
-}
-
-var (
-	lexCTokens []Token
-)
-
-func init() {
-	lexCTokens = make([]Token, 0, 20)
-}
-
 func lexC(s string) ([]Token, error) {
 	split := strings.IndexRune(s, ';')
 
@@ -131,7 +111,6 @@ func lexC(s string) ([]Token, error) {
 		size = len(comp) + 2
 	} else {
 		comp = s
-		jump = ""
 		size = len(comp) + 1
 	}
 
@@ -161,26 +140,59 @@ func lexC(s string) ([]Token, error) {
 		case 'A':
 			lexCTokens[i] = Token{Value: "A", Type: LOCATION}
 		default:
-			return lexCTokens, fmt.Errorf("Unexpected token in: %s", s)
+			return []Token{}, fmt.Errorf("unexpected rune '%v' in: %s", ch, s)
 		}
 	}
-	if jump != "" {
+	if len(jump) > 0 {
 		switch jump {
-		case "JGT", "JEQ", "JGE", "JLT", "JNE", "JLE", "JMP":
+		case
+			"JGT",
+			"JEQ",
+			"JGE",
+			"JLT",
+			"JNE",
+			"JLE",
+			"JMP":
 			lexCTokens[len(lexCTokens)-2] = Token{Value: jump, Type: JUMP}
 		}
 	}
 
-	lexCTokens[len(lexCTokens)-1] = Token{Type: END}
+	lexCTokens[len(lexCTokens)-1] = end
 	return lexCTokens, nil
 }
 
-// clean deletes comments and whitespace
 func clean(s string) string {
 	i := strings.Index(s, "//")
-	if i != -1 {
+	if i > -1 {
 		s = s[:i]
 	}
-	s = strings.TrimSpace(s)
-	return s
+	return strings.TrimSpace(s)
+}
+
+func isC(s string) bool {
+	for _, ch := range s {
+		if ch == '=' {
+			return true
+		}
+		if ch == ';' {
+			return true
+		}
+	}
+	return false
+}
+
+func typeFromVal(s string) TokenType {
+	if isNum(s) {
+		return ADDRESS
+	}
+	return SYMBOL
+}
+
+func isNum(s string) bool {
+	for _, ch := range s {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }
