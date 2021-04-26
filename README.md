@@ -4,11 +4,11 @@
 
 An assembler implementation for [nand2tetris](https://www.nand2tetris.org/), written in Go.
 
-# usage
+# example usage
 
 ```
 $ ./scripts/build.sh
-$ n2t-asm <prog.asm> > out.hack
+$ ./n2t-asm program.asm > program.hack
 ```
 
 # testing
