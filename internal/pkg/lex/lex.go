@@ -9,6 +9,7 @@ import (
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
+// TODO encapsulate
 var (
 	globalTokens = make([]token.Token, 0, 20)
 	lexCTokens   = make([]token.Token, 0, 20)

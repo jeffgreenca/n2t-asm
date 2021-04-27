@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
@@ -40,10 +41,10 @@ func Assemble(program []parser.Command) ([]string, error) {
 	pos := 0
 	for _, c := range program {
 		switch c.Type {
-		case parser.L_COMMAND:
-			cmd := c.C.(parser.CmdL)
+		case command.L:
+			cmd := c.RealCmd.(parser.CmdL)
 			symbols[cmd.Symbol] = pos
-		case parser.C_COMMAND, parser.A_COMMAND:
+		case command.C, command.A:
 			pos++
 		default:
 			return []string{}, fmt.Errorf("unknown instruction type in command '%+v': %v", c, c.Type)
@@ -57,15 +58,15 @@ func Assemble(program []parser.Command) ([]string, error) {
 	userVarPos := 0x010
 	for _, c := range program {
 		switch c.Type {
-		case parser.C_COMMAND:
-			cmd := c.C.(parser.CmdC)
+		case command.C:
+			cmd := c.RealCmd.(parser.CmdC)
 			hack, err := cTos(cmd)
 			if err != nil {
 				return []string{}, fmt.Errorf("failed parsing C cmd: %v", err)
 			}
 			instructions = append(instructions, hack)
-		case parser.A_COMMAND:
-			cmd := c.C.(parser.CmdA)
+		case command.A:
+			cmd := c.RealCmd.(parser.CmdA)
 			if !cmd.Final {
 				loc, ok := symbols[cmd.Symbol]
 				if !ok {

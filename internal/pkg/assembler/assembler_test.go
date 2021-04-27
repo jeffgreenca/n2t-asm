@@ -3,8 +3,10 @@ package assembler
 import (
 	"testing"
 
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
 func TestHelloWorld(t *testing.T) {
@@ -12,14 +14,14 @@ func TestHelloWorld(t *testing.T) {
 }
 
 func TestA(t *testing.T) {
-	prog := []parser.Command{{Type: parser.A_COMMAND, C: parser.CmdA{Address: 7, Final: true}}}
+	prog := []parser.Command{{Type: command.A, RealCmd: parser.CmdA{Address: 7, Final: true}}}
 	o, err := Assemble(prog)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"0000000000000111"}, o)
 }
 func TestC(t *testing.T) {
-	prog := []parser.Command{{Type: parser.C_COMMAND,
-		C: parser.CmdC{
+	prog := []parser.Command{{Type: command.C,
+		RealCmd: parser.CmdC{
 			D: parser.Dest{M: true, D: true},
 			C: "M+1",
 			J: "",
@@ -30,8 +32,8 @@ func TestC(t *testing.T) {
 	assert.Equal(t, []string{"1111110111011000"}, o)
 }
 func TestCWithJump(t *testing.T) {
-	prog := []parser.Command{{Type: parser.C_COMMAND,
-		C: parser.CmdC{
+	prog := []parser.Command{{Type: command.C,
+		RealCmd: parser.CmdC{
 			D: parser.Dest{M: true, D: true},
 			C: "M+1",
 			J: "JMP",

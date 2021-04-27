@@ -3,8 +3,10 @@ package parser
 import (
 	"testing"
 
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
 func TestCommandTypeL(t *testing.T) {
@@ -28,8 +30,8 @@ func TestCommandTypeL(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, L_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, command.L, program[0].Type)
+		assert.Equal(t, c.expected, program[0].RealCmd)
 	}
 }
 
@@ -70,8 +72,8 @@ func TestCommandTypeA(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, A_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, command.A, program[0].Type)
+		assert.Equal(t, c.expected, program[0].RealCmd)
 	}
 }
 
@@ -163,7 +165,7 @@ func TestCommandTypeC(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, C_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, command.C, program[0].Type)
+		assert.Equal(t, c.expected, program[0].RealCmd)
 	}
 }

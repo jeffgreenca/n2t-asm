@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
@@ -29,18 +30,9 @@ type Dest struct {
 	M bool
 }
 
-type CommandType int
-
-const (
-	UNUSED CommandType = iota
-	L_COMMAND
-	C_COMMAND
-	A_COMMAND
-)
-
 type Command struct {
-	Type CommandType
-	C    interface{}
+	Type    command.Type
+	RealCmd interface{}
 }
 
 type state struct {
@@ -81,7 +73,7 @@ func (s *state) s() error {
 	}
 	if s.peek(token.LOCATION) || s.peek(token.OPERATOR) || s.peek(token.NUMBER) {
 		// init
-		cmd := Command{Type: C_COMMAND}
+		cmd := Command{Type: command.C}
 		s.cmdC = CmdC{D: Dest{}}
 		// parse
 		err := s.c()
@@ -89,25 +81,25 @@ func (s *state) s() error {
 			return fmt.Errorf("parse error for location/operator/number: %v", err)
 		}
 		// store
-		cmd.C = s.cmdC
+		cmd.RealCmd = s.cmdC
 		s.program = append(s.program, cmd)
 	} else if s.peek(token.AT) {
-		cmd := Command{Type: A_COMMAND}
+		cmd := Command{Type: command.A}
 		s.cmdA = CmdA{}
 		err := s.a()
 		if err != nil {
 			return fmt.Errorf("parse error for AT: %v", err)
 		}
-		cmd.C = s.cmdA
+		cmd.RealCmd = s.cmdA
 		s.program = append(s.program, cmd)
 	} else if s.peek(token.LABEL) {
-		cmd := Command{Type: L_COMMAND}
+		cmd := Command{Type: command.L}
 		s.cmdL = CmdL{}
 		err := s.l()
 		if err != nil {
 			return fmt.Errorf("parse error for label: %v", err)
 		}
-		cmd.C = s.cmdL
+		cmd.RealCmd = s.cmdL
 		s.program = append(s.program, cmd)
 	} else {
 		return fmt.Errorf("unexpected token, wut: %v", s.peekGet())
