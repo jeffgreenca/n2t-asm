@@ -29,7 +29,7 @@ func TestTokenizeTypeL(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		actual, err := Tokenize(k)
+		actual, err := tokenize(k)
 		assert.NoError(t, err)
 		assert.Equal(t, v, actual)
 	}
@@ -54,7 +54,7 @@ func TestTokenizeTypeC(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		actual, err := Tokenize(k)
+		actual, err := tokenize(k)
 		assert.NoError(t, err)
 		assert.Equal(t, v, actual)
 	}
@@ -80,7 +80,7 @@ func TestTokenizeTypeA(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		actual, err := Tokenize(k)
+		actual, err := tokenize(k)
 		assert.NoError(t, err)
 		assert.Equal(t, v, actual)
 	}

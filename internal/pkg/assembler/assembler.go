@@ -7,7 +7,7 @@ import (
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
-// Assemble converts a series of parsed Commands into HACK machine language instructions
+// Assemble parsed commands into HACK machine language. The final step.
 func Assemble(program []parser.Command) ([]string, error) {
 	// init symbol table
 	symbols := map[string]int{

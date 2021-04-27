@@ -3,7 +3,7 @@ package lex
 import (
 	"bufio"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 )
 
@@ -35,14 +35,14 @@ var (
 	end = Token{Type: END}
 )
 
-// TokenizeFile reads file and returns tokenized form or error
-func TokenizeFile(f *os.File) ([]Token, error) {
+// Tokenize
+func Tokenize(r io.Reader) ([]Token, error) {
 	var result []Token
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
-		tokens, err := Tokenize(line)
+		tokens, err := tokenize(line)
 		if err != nil {
 			return []Token{}, fmt.Errorf("failed to tokenize line '%s': %v", line, err)
 		}
@@ -51,8 +51,8 @@ func TokenizeFile(f *os.File) ([]Token, error) {
 	return result, nil
 }
 
-// Tokenize one line of nand2tetris assembly statement
-func Tokenize(s string) ([]Token, error) {
+// tokenize one line of nand2tetris assembly statement
+func tokenize(s string) ([]Token, error) {
 	s = clean(s)
 	if s == "" {
 		return nil, nil

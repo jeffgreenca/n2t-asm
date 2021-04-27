@@ -48,12 +48,18 @@ const (
 1110101010000111`
 )
 
+func tokenize(s string) ([]lex.Token, error) {
+	// legacy bridge
+	return lex.Tokenize(strings.NewReader(s))
+}
+
 func TestLexParseSingle(t *testing.T) {
-	tokens, err := lex.Tokenize("@10")
+	tokens, err := tokenize("@10")
 	assert.NoError(t, err)
 	assert.Len(t, tokens, 3)
 
-	prog, err := parser.Parse(tokens)
+	p := parser.New()
+	prog, err := p.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
 }
@@ -61,12 +67,13 @@ func TestLexParseSingle(t *testing.T) {
 func TestLexParseAssembleNoLabels(t *testing.T) {
 	var tokens []lex.Token
 	for _, s := range strings.Split(progTrivial, "\n") {
-		tk, err := lex.Tokenize(s)
+		tk, err := tokenize(s)
 		assert.NoError(t, err)
 		tokens = append(tokens, tk...)
 	}
 
-	prog, err := parser.Parse(tokens)
+	p := parser.New()
+	prog, err := p.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 4)
 
@@ -78,12 +85,13 @@ func TestLexParseAssembleNoLabels(t *testing.T) {
 func TestAll(t *testing.T) {
 	var tokens []lex.Token
 	for _, s := range strings.Split(progAdd, "\n") {
-		tk, err := lex.Tokenize(s)
+		tk, err := tokenize(s)
 		assert.NoError(t, err)
 		tokens = append(tokens, tk...)
 	}
 
-	prog, err := parser.Parse(tokens)
+	p := parser.New()
+	prog, err := p.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 9)
 
@@ -95,14 +103,15 @@ func TestAll(t *testing.T) {
 // --- regression tests
 func TestLexParseDMJGT(t *testing.T) {
 	// D;JGT -> 1110001100000001
-	tokens, err := lex.Tokenize("D;JGT")
+	tokens, err := tokenize("D;JGT")
 	assert.NoError(t, err)
 	assert.Len(t, tokens, 3)
 	assert.Equal(t, lex.Token{Value: "D", Type: lex.LOCATION}, tokens[0])
 	assert.Equal(t, lex.Token{Value: "JGT", Type: lex.JUMP}, tokens[1])
 	assert.Equal(t, lex.Token{Type: lex.END}, tokens[2])
 
-	prog, err := parser.Parse(tokens)
+	p := parser.New()
+	prog, err := p.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
 	assert.Equal(t, parser.Command{Type: parser.C_COMMAND, C: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])

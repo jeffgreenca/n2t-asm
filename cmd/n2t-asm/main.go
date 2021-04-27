@@ -21,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	tokens, err := lex.TokenizeFile(r)
+	tokens, err := lex.Tokenize(r)
 	if err != nil {
 		panic(err)
 	}
