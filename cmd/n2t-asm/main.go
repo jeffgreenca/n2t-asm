@@ -26,7 +26,8 @@ func main() {
 		panic(err)
 	}
 
-	program, err := parser.Parse(tokens)
+	p := parser.New()
+	program, err := p.Parse(tokens)
 	if err != nil {
 		panic(err)
 	}
