@@ -4,10 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/assembler"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
-	"github.com/stretchr/testify/assert"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
 const (
@@ -48,7 +50,7 @@ const (
 1110101010000111`
 )
 
-func tokenize(s string) ([]lex.Token, error) {
+func tokenize(s string) ([]token.Token, error) {
 	// legacy bridge
 	return lex.Tokenize(strings.NewReader(s))
 }
@@ -58,22 +60,20 @@ func TestLexParseSingle(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, tokens, 3)
 
-	p := parser.New()
-	prog, err := p.Parse(tokens)
+	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
 }
 
 func TestLexParseAssembleNoLabels(t *testing.T) {
-	var tokens []lex.Token
+	var tokens []token.Token
 	for _, s := range strings.Split(progTrivial, "\n") {
 		tk, err := tokenize(s)
 		assert.NoError(t, err)
 		tokens = append(tokens, tk...)
 	}
 
-	p := parser.New()
-	prog, err := p.Parse(tokens)
+	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 4)
 
@@ -83,15 +83,14 @@ func TestLexParseAssembleNoLabels(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	var tokens []lex.Token
+	var tokens []token.Token
 	for _, s := range strings.Split(progAdd, "\n") {
 		tk, err := tokenize(s)
 		assert.NoError(t, err)
 		tokens = append(tokens, tk...)
 	}
 
-	p := parser.New()
-	prog, err := p.Parse(tokens)
+	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 9)
 
@@ -106,12 +105,11 @@ func TestLexParseDMJGT(t *testing.T) {
 	tokens, err := tokenize("D;JGT")
 	assert.NoError(t, err)
 	assert.Len(t, tokens, 3)
-	assert.Equal(t, lex.Token{Value: "D", Type: lex.LOCATION}, tokens[0])
-	assert.Equal(t, lex.Token{Value: "JGT", Type: lex.JUMP}, tokens[1])
-	assert.Equal(t, lex.Token{Type: lex.END}, tokens[2])
+	assert.Equal(t, token.Token{Value: "D", Type: token.LOCATION}, tokens[0])
+	assert.Equal(t, token.Token{Value: "JGT", Type: token.JUMP}, tokens[1])
+	assert.Equal(t, token.Token{Type: token.END}, tokens[2])
 
-	p := parser.New()
-	prog, err := p.Parse(tokens)
+	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
 	assert.Equal(t, parser.Command{Type: parser.C_COMMAND, C: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])

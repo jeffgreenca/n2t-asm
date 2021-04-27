@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
 func TestClean(t *testing.T) {
@@ -20,11 +22,11 @@ func TestClean(t *testing.T) {
 }
 
 func TestTokenizeTypeL(t *testing.T) {
-	testCases := map[string][]Token{
+	testCases := map[string][]token.Token{
 		"(foobar)": {
-			{Type: LABEL, Value: "("},
-			{Type: SYMBOL, Value: "foobar"},
-			{Type: END, Value: ""},
+			{Type: token.LABEL, Value: "("},
+			{Type: token.SYMBOL, Value: "foobar"},
+			{Type: token.END, Value: ""},
 		},
 	}
 
@@ -36,20 +38,20 @@ func TestTokenizeTypeL(t *testing.T) {
 }
 
 func TestTokenizeTypeC(t *testing.T) {
-	testCases := map[string][]Token{
+	testCases := map[string][]token.Token{
 		"D=M+1;JNE": {
-			{Type: LOCATION, Value: "D"},
-			{Type: ASSIGN, Value: "="},
-			{Type: LOCATION, Value: "M"},
-			{Type: OPERATOR, Value: "+"},
-			{Type: NUMBER, Value: "1"},
-			{Type: JUMP, Value: "JNE"},
-			{Type: END, Value: ""},
+			{Type: token.LOCATION, Value: "D"},
+			{Type: token.ASSIGN, Value: "="},
+			{Type: token.LOCATION, Value: "M"},
+			{Type: token.OPERATOR, Value: "+"},
+			{Type: token.NUMBER, Value: "1"},
+			{Type: token.JUMP, Value: "JNE"},
+			{Type: token.END, Value: ""},
 		},
 		"D;JGT": {
-			{Type: LOCATION, Value: "D"},
-			{Type: JUMP, Value: "JGT"},
-			{Type: END, Value: ""},
+			{Type: token.LOCATION, Value: "D"},
+			{Type: token.JUMP, Value: "JGT"},
+			{Type: token.END, Value: ""},
 		},
 	}
 
@@ -61,21 +63,21 @@ func TestTokenizeTypeC(t *testing.T) {
 }
 
 func TestTokenizeTypeA(t *testing.T) {
-	testCases := map[string][]Token{
+	testCases := map[string][]token.Token{
 		"@100": {
-			{Type: AT, Value: "@"},
-			{Type: ADDRESS, Value: "100"},
-			{Type: END, Value: ""},
+			{Type: token.AT, Value: "@"},
+			{Type: token.ADDRESS, Value: "100"},
+			{Type: token.END, Value: ""},
 		},
 		"@i": {
-			{Type: AT, Value: "@"},
-			{Type: SYMBOL, Value: "i"},
-			{Type: END, Value: ""},
+			{Type: token.AT, Value: "@"},
+			{Type: token.SYMBOL, Value: "i"},
+			{Type: token.END, Value: ""},
 		},
 		"@foo": {
-			{Type: AT, Value: "@"},
-			{Type: SYMBOL, Value: "foo"},
-			{Type: END, Value: ""},
+			{Type: token.AT, Value: "@"},
+			{Type: token.SYMBOL, Value: "foo"},
+			{Type: token.END, Value: ""},
 		},
 	}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
 type CmdL struct {
@@ -43,186 +43,251 @@ type Command struct {
 	C    interface{}
 }
 
-type Parser struct {
+type state struct {
 	index   int
-	tokens  []lex.Token
+	tokens  []token.Token
 	program []Command
 	cmdC    CmdC
 	cmdA    CmdA
 	cmdL    CmdL
 }
 
-func New() *Parser {
-	return &Parser{}
+func Parse(tokens []token.Token) ([]Command, error) {
+	s := &state{}
+	return s.parse(tokens)
 }
 
 // Parse converts tokens to Commands
-func (p *Parser) Parse(t []lex.Token) ([]Command, error) {
+func (s *state) parse(t []token.Token) ([]Command, error) {
 	// initialize globals (ick)
-	p.program = []Command{}
-	p.tokens = t
-	p.index = -1
+	s.program = []Command{}
+	s.tokens = t
+	s.index = -1
 
 	// read Statements until done
-	for !p.end() {
-		err := p.s()
+	for !s.end() {
+		err := s.s()
 		if err != nil {
 			return []Command{}, err
 		}
 	}
 
-	return p.program, nil
+	return s.program, nil
 }
 
-func (p *Parser) s() error {
-	if p.peek(lex.END) {
-		p.accept(lex.END)
-		return nil
+func (s *state) s() error {
+	if s.peek(token.END) {
+		return s.accept(token.END)
 	}
-	if p.peek(lex.LOCATION) || p.peek(lex.OPERATOR) || p.peek(lex.NUMBER) {
+	if s.peek(token.LOCATION) || s.peek(token.OPERATOR) || s.peek(token.NUMBER) {
 		// init
 		cmd := Command{Type: C_COMMAND}
-		p.cmdC = CmdC{D: Dest{}}
+		s.cmdC = CmdC{D: Dest{}}
 		// parse
-		p.c()
+		err := s.c()
+		if err != nil {
+			return fmt.Errorf("parse error for location/operator/number: %v", err)
+		}
 		// store
-		cmd.C = p.cmdC
-		p.program = append(p.program, cmd)
-	} else if p.peek(lex.AT) {
+		cmd.C = s.cmdC
+		s.program = append(s.program, cmd)
+	} else if s.peek(token.AT) {
 		cmd := Command{Type: A_COMMAND}
-		p.cmdA = CmdA{}
-		p.a()
-		cmd.C = p.cmdA
-		p.program = append(p.program, cmd)
-	} else if p.peek(lex.LABEL) {
+		s.cmdA = CmdA{}
+		err := s.a()
+		if err != nil {
+			return fmt.Errorf("parse error for AT: %v", err)
+		}
+		cmd.C = s.cmdA
+		s.program = append(s.program, cmd)
+	} else if s.peek(token.LABEL) {
 		cmd := Command{Type: L_COMMAND}
-		p.cmdL = CmdL{}
-		err := p.l()
+		s.cmdL = CmdL{}
+		err := s.l()
 		if err != nil {
 			return fmt.Errorf("parse error for label: %v", err)
 		}
-		cmd.C = p.cmdL
-		p.program = append(p.program, cmd)
+		cmd.C = s.cmdL
+		s.program = append(s.program, cmd)
 	} else {
-		return fmt.Errorf("unexpected token: %v", p.tokens[p.index+1])
+		return fmt.Errorf("unexpected token, wut: %v", s.peekGet())
 	}
-	return p.s()
+	return s.s()
 }
 
 // l parses type l commands, syntax (symbol)
-func (p *Parser) l() error {
-	p.accept(lex.LABEL)
-	if p.peek(lex.SYMBOL) {
-		p.accept(lex.SYMBOL)
-		p.cmdL = CmdL{Symbol: p.tokens[p.index].Value}
+func (s *state) l() error {
+	err := s.accept(token.LABEL)
+	if err != nil {
+		return err
 	}
-	if !p.peek(lex.END) {
-		return fmt.Errorf("malforned label syntax, expected END, got: %v", p.tokens[p.index+1])
+	if s.peek(token.SYMBOL) {
+		err := s.accept(token.SYMBOL)
+		if err != nil {
+			return err
+		}
+		s.cmdL = CmdL{Symbol: s.tokens[s.index].Value}
+	}
+	if !s.peek(token.END) {
+		return fmt.Errorf("malforned label syntax, expected END, got: %v", s.peekGet())
 	}
 	return nil
 }
 
 // a parses type a commands, syntax @(symbol|address)
-func (p *Parser) a() {
-	p.accept(lex.AT)
-	if p.peek(lex.ADDRESS) {
-		p.accept(lex.ADDRESS)
-		i, err := strconv.Atoi(p.tokens[p.index].Value)
+func (s *state) a() error {
+	err := s.accept(token.AT)
+	if err != nil {
+		return err
+	}
+	if s.peek(token.ADDRESS) {
+		err := s.accept(token.ADDRESS)
 		if err != nil {
-			panic("Unexpected parse address error")
+			return err
 		}
-		p.cmdA = CmdA{Address: i, Final: true}
-	} else if p.peek(lex.SYMBOL) {
-		p.accept(lex.SYMBOL)
-		p.cmdA = CmdA{Symbol: p.tokens[p.index].Value}
+		i, err := strconv.Atoi(s.tokens[s.index].Value)
+		if err != nil {
+			return fmt.Errorf("unexpected error parsing address: %v", err)
+		}
+		s.cmdA = CmdA{Address: i, Final: true}
+	} else if s.peek(token.SYMBOL) {
+		err := s.accept(token.SYMBOL)
+		if err != nil {
+			return err
+		}
+		s.cmdA = CmdA{Symbol: s.tokens[s.index].Value}
 	}
-	if !p.peek(lex.END) {
-		panic("Malforned address syntax (@xxx)")
+	if !s.peek(token.END) {
+		return fmt.Errorf("malforned address syntax (@xxx), expected END got: %v", s.peekGet())
 	}
+	return nil
 }
 
 // c parses type c commands, syntax (dest=)comp(;jump)
-func (p *Parser) c() {
-	if p.peek(lex.OPERATOR) || p.peek(lex.NUMBER) {
-		p.comp()
-	} else if p.peek(lex.LOCATION) {
-		// maybe this is comp part, or maybe this is dest part
-		// lookahead up to 3 for assignment token
-		if p.peekN(lex.ASSIGN, 2) || p.peekN(lex.ASSIGN, 3) || p.peekN(lex.ASSIGN, 4) {
-			p.dest()
-		} else {
-			p.comp()
+func (s *state) c() error {
+	if s.peek(token.OPERATOR) || s.peek(token.NUMBER) {
+		err := s.comp()
+		if err != nil {
+			return fmt.Errorf("error calling comp() for operator/number: %v", err)
 		}
-	} else if p.peek(lex.JUMP) {
-		p.accept(lex.JUMP)
-		p.cmdC.J = p.tokens[p.index].Value
-		// Done with C() -- ?
+	} else if s.peek(token.LOCATION) {
+		// maybe this is comp part, or maybe this is dest part
+		if s.peekRange(token.ASSIGN, 2, 3) {
+			err := s.dest()
+			if err != nil {
+				return fmt.Errorf("error calling dest(): %v", err)
+			}
+		} else {
+			err := s.comp()
+			if err != nil {
+				return fmt.Errorf("error calling comp() for LOCATION: %v", err)
+			}
+		}
+	} else if s.peek(token.JUMP) {
+		err := s.accept(token.JUMP)
+		if err != nil {
+			return err
+		}
+		s.cmdC.J = s.tokens[s.index].Value
+		// Done with C()
 	}
+	return nil
 }
 
 // comp is the comp part of C command
-func (p *Parser) comp() {
-	if p.peek(lex.LOCATION) || p.peek(lex.OPERATOR) || p.peek(lex.NUMBER) {
-		p.acceptAny()
-		p.cmdC.C += p.tokens[p.index].Value
-		p.comp()
+func (s *state) comp() error {
+	if s.peek(token.LOCATION) || s.peek(token.OPERATOR) || s.peek(token.NUMBER) {
+		s.acceptAny()
+		s.cmdC.C += s.tokens[s.index].Value
+		err := s.comp()
+		if err != nil {
+			return fmt.Errorf("error calling comp(): %v", err)
+		}
 	} else {
-		p.c()
+		err := s.c()
+		if err != nil {
+			return fmt.Errorf("error calling c(): %v", err)
+		}
 	}
+	return nil
 }
 
 // dest is the dest part of C command
-func (p *Parser) dest() {
-	if p.peek(lex.LOCATION) {
-		p.accept(lex.LOCATION)
-		switch p.tokens[p.index].Value {
+func (s *state) dest() error {
+	if s.peek(token.LOCATION) {
+		err := s.accept(token.LOCATION)
+		if err != nil {
+			return err
+		}
+		switch s.tokens[s.index].Value {
 		case "A":
-			p.cmdC.D.A = true
+			s.cmdC.D.A = true
 		case "D":
-			p.cmdC.D.D = true
+			s.cmdC.D.D = true
 		case "M":
-			p.cmdC.D.M = true
+			s.cmdC.D.M = true
 		default:
-			panic("Unexpected token at DEST()")
+			return fmt.Errorf("unexpected value, expected A/D/M got: %v", s.tokens[s.index].Value)
 		}
 	}
-	if p.peek(lex.ASSIGN) {
-		p.accept(lex.ASSIGN)
-		p.comp()
-	} else if p.peek(lex.LOCATION) {
-		p.dest()
+	if s.peek(token.ASSIGN) {
+		err := s.accept(token.ASSIGN)
+		if err != nil {
+			return err
+		}
+		err = s.comp()
+		if err != nil {
+			return fmt.Errorf("error calling comp() for ASSIGN: %v", err)
+		}
+	} else if s.peek(token.LOCATION) {
+		err := s.dest()
+		if err != nil {
+			return fmt.Errorf("dest(): %v", err)
+		}
 	} else {
-		panic("Unexpected token at DEST()")
+		return fmt.Errorf("unexpected token, expected ASSIGN or LOCATION but got: %v", s.peekGet())
 	}
+	return nil
 }
 
 // peek returns true if the next token is of type t - no bounds checking
-func (p *Parser) peek(t lex.TokenType) bool {
-	return p.tokens[p.index+1].Type == t
+func (s *state) peek(t token.Type) bool {
+	return s.tokens[s.index+1].Type == t
 }
 
-// peekN looks safely ahead N tokens, returning false if out of tokens or not of type t
-func (p *Parser) peekN(t lex.TokenType, n int) bool {
-	if p.index+n >= len(p.tokens) {
+// peekGet returns the next token without advancing the counter - no bounds checking
+func (s *state) peekGet() token.Token {
+	return s.tokens[s.index+1]
+}
+
+// peekRange searches ahead, returning true if t is in the next count tokens
+func (s *state) peekRange(t token.Type, offset int, count int) bool {
+	if len(s.tokens) < s.index+offset+count {
 		return false
 	}
-	return p.tokens[p.index+n].Type == t
+	for n := 0; n < count; n++ {
+		if s.tokens[s.index+offset+n].Type == t {
+			return true
+		}
+	}
+	return false
 }
 
 // accept next token of type t
-func (p *Parser) accept(t lex.TokenType) {
-	if !p.peek(t) {
-		panic("Wrong token type, did you forget to peek")
+func (s *state) accept(t token.Type) error {
+	if !s.peek(t) {
+		return fmt.Errorf("wrong token type, accept %v but got: %v", t, s.peekGet())
 	}
-	p.acceptAny()
+	s.acceptAny()
+	return nil
 }
 
 // end returns true if we have accepted the last token already
-func (p *Parser) end() bool {
-	return p.index >= len(p.tokens)-1
+func (s *state) end() bool {
+	return s.index >= len(s.tokens)-1
 }
 
 // accept next token of any type
-func (p *Parser) acceptAny() {
-	p.index++
+func (s *state) acceptAny() {
+	s.index++
 }
