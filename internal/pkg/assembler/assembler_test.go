@@ -9,13 +9,13 @@ import (
 )
 
 func TestA(t *testing.T) {
-	prog := Program{command.A{Address: 7, Static: true}}
+	prog := command.Program{command.A{Address: 7, Static: true}}
 	o, err := Assemble(prog)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"0000000000000111"}, o)
 }
 func TestC(t *testing.T) {
-	prog := Program{command.C{
+	prog := command.Program{command.C{
 		D: command.Dest{M: true, D: true},
 		C: "M+1",
 		J: "",
@@ -25,7 +25,7 @@ func TestC(t *testing.T) {
 	assert.Equal(t, []string{"1111110111011000"}, o)
 }
 func TestCWithJump(t *testing.T) {
-	prog := Program{command.C{
+	prog := command.Program{command.C{
 		D: command.Dest{M: true, D: true},
 		C: "M+1",
 		J: "JMP",

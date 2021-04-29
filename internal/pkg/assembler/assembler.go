@@ -63,10 +63,8 @@ var (
 	}
 )
 
-type Program []command.Any
-
 // Assemble commands into HACK machine language.
-func Assemble(program Program) ([]string, error) {
+func Assemble(program command.Program) ([]string, error) {
 	symbols, err := build(program)
 	if err != nil {
 		return []string{}, fmt.Errorf("build symbols: %v", err)
@@ -81,7 +79,7 @@ func Assemble(program Program) ([]string, error) {
 }
 
 // build symbol table
-func build(program Program) (table, error) {
+func build(program command.Program) (table, error) {
 	symbols := table{
 		"SP":     0x0000,
 		"LCL":    0x0001,
@@ -121,7 +119,7 @@ func build(program Program) (table, error) {
 }
 
 // assemble instructions from program and completed symbol table.
-func assemble(program Program, symbols table) ([]string, error) {
+func assemble(program command.Program, symbols table) ([]string, error) {
 	// pass two: if encountering an @SYMBOL
 	//		if an existing symbol, finalize the CmdA struct
 	//		if a new symbol, add to symbol table as a new user defined variable and finalize CmdA struct

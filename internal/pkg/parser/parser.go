@@ -11,23 +11,23 @@ import (
 type state struct {
 	index   int
 	tokens  []token.Token
-	program []command.Any
+	program command.Program
 	cmdC    command.C
 	cmdA    command.A
 	cmdL    command.L
 }
 
 // Parse tokens to commands.
-func Parse(tokens []token.Token) ([]command.Any, error) {
+func Parse(tokens []token.Token) (command.Program, error) {
 	s := &state{
-		program: []command.Any{},
+		program: command.Program{},
 		tokens:  tokens,
 		index:   -1,
 	}
 	return s.parse()
 }
 
-func (s *state) parse() ([]command.Any, error) {
+func (s *state) parse() (command.Program, error) {
 	for !s.end() {
 		err := s.s()
 		if err != nil {
