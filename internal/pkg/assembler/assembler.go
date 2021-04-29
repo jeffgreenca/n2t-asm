@@ -109,10 +109,13 @@ func build(program Program) (table, error) {
 	}
 
 	// pass one, add labels to symbol table
-	for i, c := range program {
+	pos := 0
+	for _, c := range program {
 		if cmd, ok := c.(command.L); ok {
-			symbols[cmd.Symbol] = i
+			symbols[cmd.Symbol] = pos
+			continue
 		}
+		pos++
 	}
 	return symbols, nil
 }
