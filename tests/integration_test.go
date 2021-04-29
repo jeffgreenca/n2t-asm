@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/assembler"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
@@ -112,7 +113,7 @@ func TestLexParseDMJGT(t *testing.T) {
 	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
-	assert.Equal(t, parser.Command{Type: parser.C_COMMAND, C: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])
+	assert.Equal(t, parser.Command{Type: command.TypeC, RealCmd: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])
 
 	hack, err := assembler.Assemble(prog)
 	assert.NoError(t, err)

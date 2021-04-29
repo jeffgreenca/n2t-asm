@@ -12,7 +12,7 @@ import (
 func TestCommandTypeL(t *testing.T) {
 	type TestCaseL struct {
 		tokens   []token.Token
-		expected CmdL
+		expected command.L
 	}
 
 	testCases := []TestCaseL{
@@ -22,7 +22,7 @@ func TestCommandTypeL(t *testing.T) {
 				{Type: token.SYMBOL, Value: "foobar"},
 				{Type: token.END},
 			},
-			expected: CmdL{Symbol: "foobar"},
+			expected: command.L{Symbol: "foobar"},
 		},
 	}
 
@@ -30,15 +30,14 @@ func TestCommandTypeL(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, command.L, program[0].Type)
-		assert.Equal(t, c.expected, program[0].RealCmd)
+		assert.Equal(t, c.expected, program[0])
 	}
 }
 
 func TestCommandTypeA(t *testing.T) {
 	type TestCaseA struct {
 		tokens   []token.Token
-		expected CmdA
+		expected command.A
 	}
 
 	testCases := []TestCaseA{
@@ -48,7 +47,7 @@ func TestCommandTypeA(t *testing.T) {
 				{Type: token.ADDRESS, Value: "1024"},
 				{Type: token.END},
 			},
-			expected: CmdA{Address: 1024, Final: true, Symbol: ""},
+			expected: command.A{Address: 1024, Static: true, Symbol: ""},
 		},
 		{
 			tokens: []token.Token{
@@ -56,7 +55,7 @@ func TestCommandTypeA(t *testing.T) {
 				{Type: token.SYMBOL, Value: "foo"},
 				{Type: token.END},
 			},
-			expected: CmdA{Address: 0, Final: false, Symbol: "foo"},
+			expected: command.A{Address: 0, Static: false, Symbol: "foo"},
 		},
 		{
 			tokens: []token.Token{
@@ -64,7 +63,7 @@ func TestCommandTypeA(t *testing.T) {
 				{Type: token.SYMBOL, Value: "i"},
 				{Type: token.END},
 			},
-			expected: CmdA{Address: 0, Final: false, Symbol: "i"},
+			expected: command.A{Address: 0, Static: false, Symbol: "i"},
 		},
 	}
 
@@ -72,15 +71,14 @@ func TestCommandTypeA(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, command.A, program[0].Type)
-		assert.Equal(t, c.expected, program[0].RealCmd)
+		assert.Equal(t, c.expected, program[0])
 	}
 }
 
 func TestCommandTypeC(t *testing.T) {
 	type TestCaseC struct {
 		tokens   []token.Token
-		expected CmdC
+		expected command.C
 	}
 
 	testCases := []TestCaseC{
@@ -95,8 +93,8 @@ func TestCommandTypeC(t *testing.T) {
 				{Type: token.JUMP, Value: "JNE"},
 				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: true, A: false, M: false},
 				C: "M+1",
 				J: "JNE",
 			},
@@ -108,8 +106,8 @@ func TestCommandTypeC(t *testing.T) {
 				{Type: token.JUMP, Value: "JMP"},
 				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: false, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: false, A: false, M: false},
 				C: "0",
 				J: "JMP",
 			},
@@ -125,8 +123,8 @@ func TestCommandTypeC(t *testing.T) {
 				{Type: token.LOCATION, Value: "D"},
 				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: true, M: true},
+			expected: command.C{
+				D: command.Dest{D: true, A: true, M: true},
 				C: "!D",
 				J: "",
 			},
@@ -141,8 +139,8 @@ func TestCommandTypeC(t *testing.T) {
 				{Type: token.OPERATOR, Value: "1"},
 				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: true, M: true},
+			expected: command.C{
+				D: command.Dest{D: true, A: true, M: true},
 				C: "1",
 				J: "",
 			},
@@ -153,8 +151,8 @@ func TestCommandTypeC(t *testing.T) {
 				{Type: token.OPERATOR, Value: "1"},
 				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: false, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: false, A: false, M: false},
 				C: "1",
 				J: "",
 			},
@@ -165,7 +163,6 @@ func TestCommandTypeC(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, command.C, program[0].Type)
-		assert.Equal(t, c.expected, program[0].RealCmd)
+		assert.Equal(t, c.expected, program[0])
 	}
 }

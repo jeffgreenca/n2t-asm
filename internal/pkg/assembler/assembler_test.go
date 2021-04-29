@@ -14,13 +14,13 @@ func TestHelloWorld(t *testing.T) {
 }
 
 func TestA(t *testing.T) {
-	prog := []parser.Command{{Type: command.A, RealCmd: parser.CmdA{Address: 7, Final: true}}}
+	prog := []parser.Command{{Type: command.TypeA, RealCmd: parser.CmdA{Address: 7, Final: true}}}
 	o, err := Assemble(prog)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"0000000000000111"}, o)
 }
 func TestC(t *testing.T) {
-	prog := []parser.Command{{Type: command.C,
+	prog := []parser.Command{{Type: command.TypeC,
 		RealCmd: parser.CmdC{
 			D: parser.Dest{M: true, D: true},
 			C: "M+1",
@@ -32,7 +32,7 @@ func TestC(t *testing.T) {
 	assert.Equal(t, []string{"1111110111011000"}, o)
 }
 func TestCWithJump(t *testing.T) {
-	prog := []parser.Command{{Type: command.C,
+	prog := []parser.Command{{Type: command.TypeC,
 		RealCmd: parser.CmdC{
 			D: parser.Dest{M: true, D: true},
 			C: "M+1",

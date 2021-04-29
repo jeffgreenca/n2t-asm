@@ -8,62 +8,32 @@ import (
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
-type CmdL struct {
-	Symbol string
-}
-
-type CmdC struct {
-	D Dest
-	C string
-	J string
-}
-
-type CmdA struct {
-	Address int
-	Symbol  string
-	Final   bool // true for static address, or resolved Symbol address
-}
-
-type Dest struct {
-	A bool
-	D bool
-	M bool
-}
-
-type Command struct {
-	Type    command.Type
-	RealCmd interface{}
-}
-
 type state struct {
 	index   int
 	tokens  []token.Token
-	program []Command
-	cmdC    CmdC
-	cmdA    CmdA
-	cmdL    CmdL
+	program []command.Any
+	cmdC    command.C
+	cmdA    command.A
+	cmdL    command.L
 }
 
-func Parse(tokens []token.Token) ([]Command, error) {
-	s := &state{}
-	return s.parse(tokens)
+// Parse tokens to commands.
+func Parse(tokens []token.Token) ([]command.Any, error) {
+	s := &state{
+		program: []command.Any{},
+		tokens:  tokens,
+		index:   -1,
+	}
+	return s.parse()
 }
 
-// Parse converts tokens to Commands
-func (s *state) parse(t []token.Token) ([]Command, error) {
-	// initialize globals (ick)
-	s.program = []Command{}
-	s.tokens = t
-	s.index = -1
-
-	// read Statements until done
+func (s *state) parse() ([]command.Any, error) {
 	for !s.end() {
 		err := s.s()
 		if err != nil {
-			return []Command{}, err
+			return nil, err
 		}
 	}
-
 	return s.program, nil
 }
 
@@ -73,34 +43,28 @@ func (s *state) s() error {
 	}
 	if s.peek(token.LOCATION) || s.peek(token.OPERATOR) || s.peek(token.NUMBER) {
 		// init
-		cmd := Command{Type: command.C}
-		s.cmdC = CmdC{D: Dest{}}
+		s.cmdC = command.C{D: command.Dest{}}
 		// parse
 		err := s.c()
 		if err != nil {
 			return fmt.Errorf("parse error for location/operator/number: %v", err)
 		}
 		// store
-		cmd.RealCmd = s.cmdC
-		s.program = append(s.program, cmd)
+		s.program = append(s.program, s.cmdC)
 	} else if s.peek(token.AT) {
-		cmd := Command{Type: command.A}
-		s.cmdA = CmdA{}
+		s.cmdA = command.A{}
 		err := s.a()
 		if err != nil {
 			return fmt.Errorf("parse error for AT: %v", err)
 		}
-		cmd.RealCmd = s.cmdA
-		s.program = append(s.program, cmd)
+		s.program = append(s.program, s.cmdA)
 	} else if s.peek(token.LABEL) {
-		cmd := Command{Type: command.L}
-		s.cmdL = CmdL{}
+		s.cmdL = command.L{}
 		err := s.l()
 		if err != nil {
 			return fmt.Errorf("parse error for label: %v", err)
 		}
-		cmd.RealCmd = s.cmdL
-		s.program = append(s.program, cmd)
+		s.program = append(s.program, s.cmdL)
 	} else {
 		return fmt.Errorf("unexpected token, wut: %v", s.peekGet())
 	}
@@ -118,7 +82,7 @@ func (s *state) l() error {
 		if err != nil {
 			return err
 		}
-		s.cmdL = CmdL{Symbol: s.tokens[s.index].Value}
+		s.cmdL = command.L{Symbol: s.tokens[s.index].Value}
 	}
 	if !s.peek(token.END) {
 		return fmt.Errorf("malforned label syntax, expected END, got: %v", s.peekGet())
@@ -141,13 +105,13 @@ func (s *state) a() error {
 		if err != nil {
 			return fmt.Errorf("unexpected error parsing address: %v", err)
 		}
-		s.cmdA = CmdA{Address: i, Final: true}
+		s.cmdA = command.A{Address: i, Static: true}
 	} else if s.peek(token.SYMBOL) {
 		err := s.accept(token.SYMBOL)
 		if err != nil {
 			return err
 		}
-		s.cmdA = CmdA{Symbol: s.tokens[s.index].Value}
+		s.cmdA = command.A{Symbol: s.tokens[s.index].Value}
 	}
 	if !s.peek(token.END) {
 		return fmt.Errorf("malforned address syntax (@xxx), expected END got: %v", s.peekGet())
@@ -181,7 +145,7 @@ func (s *state) c() error {
 			return err
 		}
 		s.cmdC.J = s.tokens[s.index].Value
-		// Done with C()
+		// Done with c()
 	}
 	return nil
 }
