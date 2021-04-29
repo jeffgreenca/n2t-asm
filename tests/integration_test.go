@@ -113,7 +113,7 @@ func TestLexParseDMJGT(t *testing.T) {
 	prog, err := parser.Parse(tokens)
 	assert.NoError(t, err)
 	assert.Len(t, prog, 1)
-	assert.Equal(t, parser.Command{Type: command.TypeC, RealCmd: parser.CmdC{D: parser.Dest{}, C: "D", J: "JGT"}}, prog[0])
+	assert.Equal(t, command.C{D: command.Dest{}, C: "D", J: "JGT"}, prog[0])
 
 	hack, err := assembler.Assemble(prog)
 	assert.NoError(t, err)

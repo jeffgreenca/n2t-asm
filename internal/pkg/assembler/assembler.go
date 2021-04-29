@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
 )
 
 // table is the symbol table type
@@ -64,8 +63,10 @@ var (
 	}
 )
 
+type Program []command.Any
+
 // Assemble commands into HACK machine language.
-func Assemble(program []parser.Command) ([]string, error) {
+func Assemble(program Program) ([]string, error) {
 	symbols, err := build(program)
 	if err != nil {
 		return []string{}, fmt.Errorf("build symbols: %v", err)
@@ -80,7 +81,7 @@ func Assemble(program []parser.Command) ([]string, error) {
 }
 
 // build symbol table
-func build(program []parser.Command) (table, error) {
+func build(program Program) (table, error) {
 	symbols := table{
 		"SP":     0x0000,
 		"LCL":    0x0001,
@@ -109,7 +110,7 @@ func build(program []parser.Command) (table, error) {
 
 	// pass one, add labels to symbol table
 	for i, c := range program {
-		if cmd, ok := c.RealCmd.(parser.CmdL); ok {
+		if cmd, ok := c.(command.L); ok {
 			symbols[cmd.Symbol] = i
 		}
 	}
@@ -117,24 +118,23 @@ func build(program []parser.Command) (table, error) {
 }
 
 // assemble instructions from program and completed symbol table.
-func assemble(program []parser.Command, symbols table) ([]string, error) {
+func assemble(program Program, symbols table) ([]string, error) {
 	// pass two: if encountering an @SYMBOL
 	//		if an existing symbol, finalize the CmdA struct
 	//		if a new symbol, add to symbol table as a new user defined variable and finalize CmdA struct
 	var instructions []string
 	userVarPos := 0x010
 	for _, c := range program {
-		switch c.Type {
-		case command.TypeC:
-			cmd := c.RealCmd.(parser.CmdC)
+		switch cmd := c.(type) {
+		case command.C:
 			hack, err := cTos(cmd)
 			if err != nil {
 				return []string{}, fmt.Errorf("failed parsing C cmd: %v", err)
 			}
 			instructions = append(instructions, hack)
-		case command.TypeA:
-			cmd := c.RealCmd.(parser.CmdA)
-			if !cmd.Final {
+		case command.A:
+			// TODO simplify
+			if !cmd.Static {
 				loc, ok := symbols[cmd.Symbol]
 				if !ok {
 					loc = userVarPos
@@ -142,7 +142,7 @@ func assemble(program []parser.Command, symbols table) ([]string, error) {
 					userVarPos++
 				}
 				cmd.Address = loc
-				cmd.Final = true
+				// cmd.Final = true
 			}
 			hack := fmt.Sprintf("0%015b", cmd.Address)
 			instructions = append(instructions, hack)
@@ -152,7 +152,7 @@ func assemble(program []parser.Command, symbols table) ([]string, error) {
 	return instructions, nil
 }
 
-func cTos(cmd parser.CmdC) (string, error) {
+func cTos(cmd command.C) (string, error) {
 	// C command prefix - 3 bits
 	p := 0b111
 
