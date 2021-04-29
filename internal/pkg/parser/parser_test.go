@@ -3,24 +3,26 @@ package parser
 import (
 	"testing"
 
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/lex"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/token"
 )
 
 func TestCommandTypeL(t *testing.T) {
 	type TestCaseL struct {
-		tokens   []lex.Token
-		expected CmdL
+		tokens   []token.Token
+		expected command.L
 	}
 
 	testCases := []TestCaseL{
 		{
-			tokens: []lex.Token{
-				{Type: lex.LABEL, Value: "("},
-				{Type: lex.SYMBOL, Value: "foobar"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.LABEL, Value: "("},
+				{Type: token.SYMBOL, Value: "foobar"},
+				{Type: token.END},
 			},
-			expected: CmdL{Symbol: "foobar"},
+			expected: command.L{Symbol: "foobar"},
 		},
 	}
 
@@ -28,41 +30,40 @@ func TestCommandTypeL(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, L_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, c.expected, program[0])
 	}
 }
 
 func TestCommandTypeA(t *testing.T) {
 	type TestCaseA struct {
-		tokens   []lex.Token
-		expected CmdA
+		tokens   []token.Token
+		expected command.A
 	}
 
 	testCases := []TestCaseA{
 		{
-			tokens: []lex.Token{
-				{Type: lex.AT, Value: "@"},
-				{Type: lex.ADDRESS, Value: "1024"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.AT, Value: "@"},
+				{Type: token.ADDRESS, Value: "1024"},
+				{Type: token.END},
 			},
-			expected: CmdA{Address: 1024, Final: true, Symbol: ""},
+			expected: command.A{Address: 1024, Static: true, Symbol: ""},
 		},
 		{
-			tokens: []lex.Token{
-				{Type: lex.AT, Value: "@"},
-				{Type: lex.SYMBOL, Value: "foo"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.AT, Value: "@"},
+				{Type: token.SYMBOL, Value: "foo"},
+				{Type: token.END},
 			},
-			expected: CmdA{Address: 0, Final: false, Symbol: "foo"},
+			expected: command.A{Address: 0, Static: false, Symbol: "foo"},
 		},
 		{
-			tokens: []lex.Token{
-				{Type: lex.AT, Value: "@"},
-				{Type: lex.SYMBOL, Value: "i"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.AT, Value: "@"},
+				{Type: token.SYMBOL, Value: "i"},
+				{Type: token.END},
 			},
-			expected: CmdA{Address: 0, Final: false, Symbol: "i"},
+			expected: command.A{Address: 0, Static: false, Symbol: "i"},
 		},
 	}
 
@@ -70,89 +71,88 @@ func TestCommandTypeA(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, A_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, c.expected, program[0])
 	}
 }
 
 func TestCommandTypeC(t *testing.T) {
 	type TestCaseC struct {
-		tokens   []lex.Token
-		expected CmdC
+		tokens   []token.Token
+		expected command.C
 	}
 
 	testCases := []TestCaseC{
 		{
 			// dest=comp;jump
-			tokens: []lex.Token{
-				{Type: lex.LOCATION, Value: "D"},
-				{Type: lex.ASSIGN, Value: "="},
-				{Type: lex.LOCATION, Value: "M"},
-				{Type: lex.OPERATOR, Value: "+"},
-				{Type: lex.NUMBER, Value: "1"},
-				{Type: lex.JUMP, Value: "JNE"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.LOCATION, Value: "D"},
+				{Type: token.ASSIGN, Value: "="},
+				{Type: token.LOCATION, Value: "M"},
+				{Type: token.OPERATOR, Value: "+"},
+				{Type: token.NUMBER, Value: "1"},
+				{Type: token.JUMP, Value: "JNE"},
+				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: true, A: false, M: false},
 				C: "M+1",
 				J: "JNE",
 			},
 		},
 		{
 			// comp;jump
-			tokens: []lex.Token{
-				{Type: lex.NUMBER, Value: "0"},
-				{Type: lex.JUMP, Value: "JMP"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.NUMBER, Value: "0"},
+				{Type: token.JUMP, Value: "JMP"},
+				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: false, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: false, A: false, M: false},
 				C: "0",
 				J: "JMP",
 			},
 		},
 		{
 			// dest=comp (with all 3 destinations, with operator leading comp)
-			tokens: []lex.Token{
-				{Type: lex.LOCATION, Value: "D"},
-				{Type: lex.LOCATION, Value: "M"},
-				{Type: lex.LOCATION, Value: "A"},
-				{Type: lex.ASSIGN, Value: "="},
-				{Type: lex.OPERATOR, Value: "!"},
-				{Type: lex.LOCATION, Value: "D"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.LOCATION, Value: "D"},
+				{Type: token.LOCATION, Value: "M"},
+				{Type: token.LOCATION, Value: "A"},
+				{Type: token.ASSIGN, Value: "="},
+				{Type: token.OPERATOR, Value: "!"},
+				{Type: token.LOCATION, Value: "D"},
+				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: true, M: true},
+			expected: command.C{
+				D: command.Dest{D: true, A: true, M: true},
 				C: "!D",
 				J: "",
 			},
 		},
 		{
 			// dest=comp (with numeric leading comp)
-			tokens: []lex.Token{
-				{Type: lex.LOCATION, Value: "D"},
-				{Type: lex.LOCATION, Value: "M"},
-				{Type: lex.LOCATION, Value: "A"},
-				{Type: lex.ASSIGN, Value: "="},
-				{Type: lex.OPERATOR, Value: "1"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.LOCATION, Value: "D"},
+				{Type: token.LOCATION, Value: "M"},
+				{Type: token.LOCATION, Value: "A"},
+				{Type: token.ASSIGN, Value: "="},
+				{Type: token.OPERATOR, Value: "1"},
+				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: true, A: true, M: true},
+			expected: command.C{
+				D: command.Dest{D: true, A: true, M: true},
 				C: "1",
 				J: "",
 			},
 		},
 		{
 			// comp only
-			tokens: []lex.Token{
-				{Type: lex.OPERATOR, Value: "1"},
-				{Type: lex.END},
+			tokens: []token.Token{
+				{Type: token.OPERATOR, Value: "1"},
+				{Type: token.END},
 			},
-			expected: CmdC{
-				D: Dest{D: false, A: false, M: false},
+			expected: command.C{
+				D: command.Dest{D: false, A: false, M: false},
 				C: "1",
 				J: "",
 			},
@@ -163,7 +163,6 @@ func TestCommandTypeC(t *testing.T) {
 		program, err := Parse(c.tokens)
 		assert.NoError(t, err)
 
-		assert.Equal(t, C_COMMAND, program[0].Type)
-		assert.Equal(t, c.expected, program[0].C)
+		assert.Equal(t, c.expected, program[0])
 	}
 }

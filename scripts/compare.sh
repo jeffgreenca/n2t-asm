@@ -12,8 +12,10 @@ FAIL=0
 for t in ${TARGETS}; do
 	fn=$(basename ${t})
 	cp ${t} ${WORKDIR}/${fn}
+	echo temp/${fn}
 	${ASM_1} ${WORKDIR}/${fn} > /dev/null
-	diff --color=always <(${ASM_2} ${WORKDIR}/${fn}) ${WORKDIR}/${fn:0:-4}.hack || export FAIL=1
+	${ASM_2} ${WORKDIR}/${fn} > ${WORKDIR}/${fn:0:-4}.hack2
+	diff ${WORKDIR}/${fn:0:-4}.hack2 ${WORKDIR}/${fn:0:-4}.hack || export FAIL=1
 done
 
 if [[ $FAIL -eq 0 ]]; then

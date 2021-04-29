@@ -4,88 +4,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jeffgreenca/n2t-asm/internal/pkg/parser"
+	"github.com/jeffgreenca/n2t-asm/internal/pkg/command"
 )
 
-// Assemble converts a series of parsed Commands into HACK machine language instructions
-func Assemble(program []parser.Command) ([]string, error) {
-	// init symbol table
-	symbols := map[string]int{
-		"SP":     0x0000,
-		"LCL":    0x0001,
-		"ARG":    0x0002,
-		"THIS":   0x0003,
-		"THAT":   0x0004,
-		"R0":     0x0000,
-		"R1":     0x0001,
-		"R2":     0x0002,
-		"R3":     0x0003,
-		"R4":     0x0004,
-		"R5":     0x0005,
-		"R6":     0x0006,
-		"R7":     0x0007,
-		"R8":     0x0008,
-		"R9":     0x0009,
-		"R10":    0x00a,
-		"R11":    0x00b,
-		"R12":    0x00c,
-		"R13":    0x00d,
-		"R14":    0x00e,
-		"R15":    0x00f,
-		"SCREEN": 0x4000,
-		"KBD":    0x6000,
-	}
+// table is the symbol table type
+type table map[string]int
 
-	// pass one: scan program for labels, adding to symbol table
-	pos := 0
-	for _, c := range program {
-		switch c.Type {
-		case parser.L_COMMAND:
-			cmd := c.C.(parser.CmdL)
-			symbols[cmd.Symbol] = pos
-		case parser.C_COMMAND, parser.A_COMMAND:
-			pos++
-		default:
-			return []string{}, fmt.Errorf("unknown instruction type in command '%+v': %v", c, c.Type)
-		}
-	}
-
-	// pass two: if encountering an @SYMBOL
-	//		if an existing symbol, finalize the CmdA struct
-	//		if a new symbol, add to symbol table as a new user defined variable and finalize CmdA struct
-	var instructions []string
-	userVarPos := 0x010
-	for _, c := range program {
-		switch c.Type {
-		case parser.C_COMMAND:
-			cmd := c.C.(parser.CmdC)
-			hack, err := cTos(cmd)
-			if err != nil {
-				return []string{}, fmt.Errorf("failed parsing C cmd: %v", err)
-			}
-			instructions = append(instructions, hack)
-		case parser.A_COMMAND:
-			cmd := c.C.(parser.CmdA)
-			if !cmd.Final {
-				loc, ok := symbols[cmd.Symbol]
-				if !ok {
-					loc = userVarPos
-					symbols[cmd.Symbol] = loc
-					userVarPos++
-				}
-				cmd.Address = loc
-				cmd.Final = true
-			}
-			hack := fmt.Sprintf("0%015b", cmd.Address)
-			instructions = append(instructions, hack)
-		}
-	}
-
-	return instructions, nil
-}
-
+// static lookup tables from command string to instruction partial values
 var (
-	JUMP = map[string]int{
+	jump = map[string]int{
 		"JGT": 0b001,
 		"JEQ": 0b010,
 		"JGE": 0b011,
@@ -95,7 +22,7 @@ var (
 		"JMP": 0b111,
 	}
 
-	COMP = map[string]int{
+	comp = map[string]int{
 		"0":   0b0101010,
 		"1":   0b0111111,
 		"-1":  0b0111010,
@@ -136,12 +63,102 @@ var (
 	}
 )
 
-func cTos(cmd parser.CmdC) (string, error) {
+// Assemble commands into HACK machine language.
+func Assemble(program command.Program) ([]string, error) {
+	symbols, err := build(program)
+	if err != nil {
+		return []string{}, fmt.Errorf("build symbols: %v", err)
+	}
+
+	instructions, err := assemble(program, symbols)
+	if err != nil {
+		return []string{}, fmt.Errorf("assemble second pass: %v", err)
+	}
+
+	return instructions, nil
+}
+
+// build symbol table
+func build(program command.Program) (table, error) {
+	symbols := table{
+		"SP":     0x0000,
+		"LCL":    0x0001,
+		"ARG":    0x0002,
+		"THIS":   0x0003,
+		"THAT":   0x0004,
+		"R0":     0x0000,
+		"R1":     0x0001,
+		"R2":     0x0002,
+		"R3":     0x0003,
+		"R4":     0x0004,
+		"R5":     0x0005,
+		"R6":     0x0006,
+		"R7":     0x0007,
+		"R8":     0x0008,
+		"R9":     0x0009,
+		"R10":    0x00a,
+		"R11":    0x00b,
+		"R12":    0x00c,
+		"R13":    0x00d,
+		"R14":    0x00e,
+		"R15":    0x00f,
+		"SCREEN": 0x4000,
+		"KBD":    0x6000,
+	}
+
+	// pass one, add labels to symbol table
+	pos := 0
+	for _, c := range program {
+		if cmd, ok := c.(command.L); ok {
+			symbols[cmd.Symbol] = pos
+			continue
+		}
+		pos++
+	}
+	return symbols, nil
+}
+
+// assemble instructions from program and completed symbol table.
+func assemble(program command.Program, symbols table) ([]string, error) {
+	// pass two: if encountering an @SYMBOL
+	//		if an existing symbol, finalize the CmdA struct
+	//		if a new symbol, add to symbol table as a new user defined variable and finalize CmdA struct
+	var instructions []string
+	userVarPos := 0x010
+	for _, c := range program {
+		switch cmd := c.(type) {
+		case command.C:
+			hack, err := cTos(cmd)
+			if err != nil {
+				return []string{}, fmt.Errorf("failed parsing C cmd: %v", err)
+			}
+			instructions = append(instructions, hack)
+		case command.A:
+			// TODO simplify
+			if !cmd.Static {
+				loc, ok := symbols[cmd.Symbol]
+				if !ok {
+					loc = userVarPos
+					symbols[cmd.Symbol] = loc
+					userVarPos++
+				}
+				cmd.Address = loc
+				// cmd.Final = true
+			}
+			hack := fmt.Sprintf("0%015b", cmd.Address)
+			instructions = append(instructions, hack)
+		}
+	}
+
+	return instructions, nil
+}
+
+func cTos(cmd command.C) (string, error) {
 	// C command prefix - 3 bits
 	p := 0b111
 
 	// comp flags - 7 bits
-	c, ok := COMP[cmd.C]
+	c, ok := comp[cmd.C]
 	if !ok {
 		return "", fmt.Errorf("unknown computation in '%+v': %s", cmd, cmd.C)
 	}
@@ -159,7 +176,7 @@ func cTos(cmd parser.CmdC) (string, error) {
 	}
 
 	// jump flags - 3 bits
-	j, ok := JUMP[cmd.J]
+	j, ok := jump[cmd.J]
 	if !ok {
 		j = 0
 	}
