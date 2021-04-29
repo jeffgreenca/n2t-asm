@@ -4,7 +4,7 @@
 
 An assembler for [nand2tetris](https://www.nand2tetris.org/), written in Go.
 
-# example usage
+# usage
 
 ```
 $ ./scripts/build.sh
@@ -13,14 +13,18 @@ $ ./n2t-asm program.asm > program.hack
 $ cat program.asm | ./n2t-asm > program.hack
 ```
 
-# testing
+# testing and building
 
 ```
-# run tests
 $ go test ./...
+$ ./scripts/build.sh
+```
 
-# compare output to official assembler
-# on all '*.asm' provided by nand2tetris project files
+# validation
+
+If you have nand2tetris software installed locally, this script will assmeble the corpus of `.asm` files from nand2tetris using both this assembler and the nand2tetris provided assembler, diffing the results.
+
+```
 $ export N2T_PATH=/path/to/your/nand2tetris
 $ ./scripts/build.sh && ./scripts/compare.sh
 ```
