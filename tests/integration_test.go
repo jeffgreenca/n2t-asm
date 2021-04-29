@@ -49,6 +49,81 @@ const (
 1110001100001000
 0000000000000110
 1110101010000111`
+
+	progMult = `// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/04/Mult.asm
+
+// Multiplies R0 and R1 and stores the result in R2.
+// (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
+
+// CPU optimized version
+	@R2	// zero output
+	M=0
+	@R0	// optimize for fewest loops
+	D=M
+	@R1
+	D=D-M
+	@LOOP
+	D;JLE	// if (R0 - R1) <= 0 then already optimized
+		//   else swap R0 <-> R1
+	@Z	// store R0 - R1 ans
+	M=D
+	@R0	// set R1 to current R0 value
+	D=M
+	@R1
+	M=D
+	@Z	// set R0 to previous R1 value
+	D=D-M
+	@R0
+	M=D
+(LOOP)
+	@R0
+	MD=M-1	// counter--;
+	@END
+	D;JLT	// if counter < 0 goto end
+	@R1
+	D=M
+	@R2
+	M=M+D
+	@LOOP
+	0;JMP
+(END)
+	@END
+	0;JMP
+`
+	progMultExpected = `0000000000000010
+1110101010001000
+0000000000000000
+1111110000010000
+0000000000000001
+1111010011010000
+0000000000010010
+1110001100000110
+0000000000010000
+1110001100001000
+0000000000000000
+1111110000010000
+0000000000000001
+1110001100001000
+0000000000010000
+1111010011010000
+0000000000000000
+1110001100001000
+0000000000000000
+1111110010011000
+0000000000011100
+1110001100000100
+0000000000000001
+1111110000010000
+0000000000000010
+1111000010001000
+0000000000010010
+1110101010000111
+0000000000011100
+1110101010000111
+`
 )
 
 func tokenize(s string) ([]token.Token, error) {
@@ -98,6 +173,23 @@ func TestAll(t *testing.T) {
 	hack, err := assembler.Assemble(prog)
 	assert.NoError(t, err)
 	assert.Equal(t, progAddExpected, strings.Join(hack, "\n"))
+}
+
+func TestMult(t *testing.T) {
+	var tokens []token.Token
+	for _, s := range strings.Split(progMult, "\n") {
+		tk, err := tokenize(s)
+		assert.NoError(t, err)
+		tokens = append(tokens, tk...)
+	}
+
+	prog, err := parser.Parse(tokens)
+	assert.NoError(t, err)
+	assert.Len(t, prog, 32)
+
+	hack, err := assembler.Assemble(prog)
+	assert.NoError(t, err)
+	assert.Equal(t, strings.Split(progMultExpected, "\n"), hack)
 }
 
 // --- regression tests

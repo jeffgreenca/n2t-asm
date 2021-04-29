@@ -13,7 +13,8 @@ for t in ${TARGETS}; do
 	fn=$(basename ${t})
 	cp ${t} ${WORKDIR}/${fn}
 	${ASM_1} ${WORKDIR}/${fn} > /dev/null
-	diff --color=always <(${ASM_2} ${WORKDIR}/${fn}) ${WORKDIR}/${fn:0:-4}.hack || export FAIL=1
+	echo "comparing for $t"
+	diff <(${ASM_2} ${WORKDIR}/${fn}) ${WORKDIR}/${fn:0:-4}.hack || export FAIL=1
 done
 
 if [[ $FAIL -eq 0 ]]; then
