@@ -2,13 +2,15 @@
 
 # n2t-asm
 
-An assembler implementation for [nand2tetris](https://www.nand2tetris.org/), written in Go.
+An assembler for [nand2tetris](https://www.nand2tetris.org/), written in Go.
 
 # example usage
 
 ```
 $ ./scripts/build.sh
 $ ./n2t-asm program.asm > program.hack
+# or, via stdin
+$ cat program.asm | ./n2t-asm > program.hack
 ```
 
 # testing
