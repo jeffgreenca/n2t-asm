@@ -24,7 +24,3 @@ $ go test ./...
 $ export N2T_PATH=/path/to/your/nand2tetris
 $ ./scripts/build.sh && ./scripts/compare.sh
 ```
-
-# License
-
-MIT License.
